@@ -1,0 +1,88 @@
+// 主题色彩系统 - 绿白渐变
+$primary-color: #10b981;
+$primary-light: #34d399;
+$primary-dark: #059669;
+$primary-gradient: linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%);
+
+$secondary-color: #6ee7b7;
+$secondary-light: #a7f3d0;
+$secondary-dark: #34d399;
+
+$accent-color: #14b8a6;
+$accent-light: #5eead4;
+$accent-dark: #0d9488;
+
+// 中性色
+$white: #ffffff;
+$gray-50: #f9fafb;
+$gray-100: #f3f4f6;
+$gray-200: #e5e7eb;
+$gray-300: #d1d5db;
+$gray-400: #9ca3af;
+$gray-500: #6b7280;
+$gray-600: #4b5563;
+$gray-700: #374151;
+$gray-800: #1f2937;
+$gray-900: #111827;
+$black: #000000;
+
+// 语义色彩
+$success-color: #10b981;
+$warning-color: #f59e0b;
+$error-color: #ef4444;
+$info-color: #3b82f6;
+
+// 消息气泡色彩
+$bubble-self: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+$bubble-other: #ffffff;
+
+// 背景色
+$bg-primary: #f5f7fb;
+$bg-secondary: #ffffff;
+$bg-chat: linear-gradient(180deg, #f5f7fb 0%, #e8ecf3 100%);
+
+// 毛玻璃效果
+$glass-bg: rgba(255, 255, 255, 0.7);
+$glass-blur: blur(20px);
+$glass-border: 1px solid rgba(255, 255, 255, 0.3);
+
+// 阴影
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+$shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+$shadow-float: 0 8px 32px rgba(16, 185, 129, 0.25);
+
+// 圆角
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-xl: 24px;
+$radius-full: 9999px;
+
+// 过渡
+$transition-fast: 0.15s ease;
+$transition-normal: 0.3s ease;
+$transition-slow: 0.5s ease;
+
+// 响应式断点
+$mobile: 768px;
+$tablet: 1024px;
+$desktop: 1280px;
+
+// 字体
+$font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+$font-size-xs: 12px;
+$font-size-sm: 14px;
+$font-size-base: 16px;
+$font-size-lg: 18px;
+$font-size-xl: 20px;
+$font-size-2xl: 24px;
+$font-size-3xl: 30px;
+
+// Z-index层级
+$z-dropdown: 100;
+$z-modal: 200;
+$z-popover: 300;
+$z-tooltip: 400;

@@ -1,0 +1,255 @@
+@import './variables.scss';
+@import './mixins.scss';
+
+// 重置样式
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: $font-family;
+  font-size: $font-size-base;
+  color: $gray-800;
+  background: $bg-primary;
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  font-family: inherit;
+}
+
+input, textarea {
+  font-family: inherit;
+}
+
+// 全局工具类
+.glass {
+  @include glass-effect;
+}
+
+.gradient-text {
+  @include gradient-text;
+}
+
+.flex-center {
+  @include flex-center;
+}
+
+.flex-between {
+  @include flex-between;
+}
+
+.text-ellipsis {
+  @include text-ellipsis;
+}
+
+// 按钮类
+.btn {
+  @include button-base;
+}
+
+.btn-primary {
+  @include button-primary;
+}
+
+.btn-secondary {
+  @include button-secondary;
+}
+
+.btn-icon {
+  @include button-base;
+  padding: 8px;
+  background: transparent;
+  color: $gray-500;
+  border-radius: $radius-full;
+  
+  &:hover:not(:disabled) {
+    background: $gray-100;
+    color: $primary-color;
+  }
+}
+
+// 输入框类
+.input {
+  @include input-base;
+}
+
+// 卡片类
+.card {
+  @include float-card;
+  padding: 20px;
+}
+
+// 头像类
+.avatar {
+  @include avatar;
+  
+  &.avatar-sm {
+    @include avatar(32px);
+    font-size: $font-size-xs;
+  }
+  
+  &.avatar-lg {
+    @include avatar(56px);
+    font-size: $font-size-xl;
+  }
+  
+  &.avatar-xl {
+    @include avatar(80px);
+    font-size: $font-size-2xl;
+  }
+}
+
+// 徽章类
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: $white;
+  background: $error-color;
+  border-radius: $radius-full;
+}
+
+// 状态指示器
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: $radius-full;
+  
+  &.online {
+    background: $success-color;
+    box-shadow: 0 0 0 3px rgba($success-color, 0.2);
+  }
+  
+  &.offline {
+    background: $gray-400;
+  }
+  
+  &.busy {
+    background: $error-color;
+  }
+  
+  &.away {
+    background: $warning-color;
+  }
+}
+
+// 动画类
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+.slide-in-right {
+  animation: slideInRight 0.3s ease;
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.3s ease;
+}
+
+// Vue过渡动画
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-enter-from {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.slide-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+// 滚动条
+.custom-scrollbar {
+  @include custom-scrollbar;
+}
+
+// 隐藏滚动条但保留滚动功能
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// 响应式隐藏
+.hide-mobile {
+  @include mobile {
+    display: none !important;
+  }
+}
+
+.show-mobile {
+  display: none !important;
+  
+  @include mobile {
+    display: flex !important;
+  }
+}
+
+// 安全区域适配
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
