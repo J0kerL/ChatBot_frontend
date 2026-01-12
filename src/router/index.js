@@ -44,7 +44,9 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to, from, next) => {
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true'
+  // 优先使用token判断登录状态
+  const token = localStorage.getItem('token')
+  const isAuthenticated = !!token
   
   if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')

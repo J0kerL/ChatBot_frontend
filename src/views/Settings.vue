@@ -209,6 +209,7 @@
 import { reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import confirm from '@/utils/confirm'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -228,9 +229,16 @@ const goBack = () => {
   router.back()
 }
 
-const handleLogout = () => {
-  if (confirm('确定要退出登录吗？')) {
-    userStore.logout()
+const handleLogout = async () => {
+  const confirmed = await confirm({
+    title: '退出登录',
+    message: '确定要退出登录吗？',
+    type: 'danger',
+    confirmText: '退出',
+    cancelText: '取消'
+  })
+  if (confirmed) {
+    await userStore.logout()
     router.push('/login')
   }
 }

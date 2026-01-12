@@ -8,126 +8,155 @@
         </svg>
       </button>
       <h1>个人资料</h1>
-      <button class="edit-btn" @click="isEditing = !isEditing">
-        {{ isEditing ? '取消' : '编辑' }}
+      <button class="logout-btn-header hide-mobile" @click="handleLogout">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M17 7L15.59 8.41L18.17 11H8V13H18.17L15.59 15.58L17 17L22 12L17 7ZM4 5H12V3H4C2.9 3 2 3.9 2 5V19C2 20.1 2.9 21 4 21H12V19H4V5Z" fill="currentColor"/>
+        </svg>
+        <span>退出登录</span>
       </button>
     </header>
 
     <main class="page-content custom-scrollbar">
-      <!-- 头像区域 -->
-      <section class="avatar-section">
-        <div class="avatar-container">
-          <img :src="userStore.user.avatar || defaultAvatar" :alt="userStore.user.username" />
-          <button v-if="isEditing" class="change-avatar-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M3 4V1H5V4H8V6H5V9H3V6H0V4H3ZM6 10V7H9V4H16L17.83 6H21C22.1 6 23 6.9 23 8V20C23 21.1 22.1 22 21 22H5C3.9 22 3 21.1 3 20V10H6ZM13 19C15.76 19 18 16.76 18 14C18 11.24 15.76 9 13 9C10.24 9 8 11.24 8 14C8 16.76 10.24 19 13 19ZM9.8 14C9.8 15.77 11.23 17.2 13 17.2C14.77 17.2 16.2 15.77 16.2 14C16.2 12.23 14.77 10.8 13 10.8C11.23 10.8 9.8 12.23 9.8 14Z" fill="currentColor"/>
-            </svg>
-          </button>
-        </div>
-      </section>
+      <!-- PC端左右布局容器 -->
+      <div class="profile-container">
+        <!-- 左侧：用户信息卡片 -->
+        <div class="profile-left">
+          <!-- 头像区域 -->
+          <section class="avatar-section">
+            <div class="avatar-container">
+              <img :src="userStore.user.avatar || defaultAvatar" :alt="userStore.user.username" />
+              <button v-if="isEditing" class="change-avatar-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 4V1H5V4H8V6H5V9H3V6H0V4H3ZM6 10V7H9V4H16L17.83 6H21C22.1 6 23 6.9 23 8V20C23 21.1 22.1 22 21 22H5C3.9 22 3 21.1 3 20V10H6ZM13 19C15.76 19 18 16.76 18 14C18 11.24 15.76 9 13 9C10.24 9 8 11.24 8 14C8 16.76 10.24 19 13 19ZM9.8 14C9.8 15.77 11.23 17.2 13 17.2C14.77 17.2 16.2 15.77 16.2 14C16.2 12.23 14.77 10.8 13 10.8C11.23 10.8 9.8 12.23 9.8 14Z" fill="currentColor"/>
+                </svg>
+              </button>
+            </div>
+            <h2 class="username">{{ userStore.user.username }}</h2>
+            <p class="user-email">{{ userStore.user.email || '未绑定邮箱' }}</p>
+          </section>
 
-      <!-- 信息展示 -->
-      <section class="info-section">
-        <div class="info-card glass">
-          <div class="info-item">
-            <label>用户名</label>
-            <span class="value">{{ userStore.user.username }}</span>
-          </div>
-          
-          <div class="info-item">
-            <label>邮箱</label>
-            <input 
-              v-if="isEditing" 
-              v-model="form.email" 
-              type="email"
-              class="input"
-              placeholder="请输入邮箱"
-            />
-            <span v-else class="value">{{ userStore.user.email || '未绑定' }}</span>
-          </div>
-        </div>
-
-      <!-- 修改密码入口 -->
-        <div class="info-card glass password-section">
-          <button class="change-password-btn" @click="showPasswordModal = true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M18 8H17V6C17 3.24 14.76 1 12 1C9.24 1 7 3.24 7 6V8H6C4.9 8 4 8.9 4 10V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V10C20 8.9 19.1 8 18 8ZM12 17C10.9 17 10 16.1 10 15C10 13.9 10.9 13 12 13C13.1 13 14 13.9 14 15C14 16.1 13.1 17 12 17ZM15.1 8H8.9V6C8.9 4.29 10.29 2.9 12 2.9C13.71 2.9 15.1 4.29 15.1 6V8Z" fill="currentColor"/>
-            </svg>
-            <span>修改密码</span>
-            <svg class="arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M8.59 16.59L13.17 12L8.59 7.41L10 6L16 12L10 18L8.59 16.59Z" fill="currentColor"/>
-            </svg>
-          </button>
-        </div>
-
-        <!-- 保存按钮 -->
-        <button v-if="isEditing" class="save-btn" @click="saveProfile">
-          保存修改
-        </button>
-      </section>
-
-      <!-- 功能入口 -->
-      <section class="menu-section">
-        <!-- 退出登录 -->
-        <button class="logout-btn" @click="handleLogout">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M17 7L15.59 8.41L18.17 11H8V13H18.17L15.59 15.58L17 17L22 12L17 7ZM4 5H12V3H4C2.9 3 2 3.9 2 5V19C2 20.1 2.9 21 4 21H12V19H4V5Z" fill="currentColor"/>
-          </svg>
-          退出登录
-        </button>
-      </section>
-    </main>
-
-    <!-- 修改密码弹窗 -->
-    <Teleport to="body">
-      <div v-if="showPasswordModal" class="modal-overlay" @click.self="closePasswordModal">
-        <div class="password-modal glass">
-          <div class="modal-header">
-            <h3>修改密码</h3>
-            <button class="close-btn" @click="closePasswordModal">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="currentColor"/>
-              </svg>
+          <!-- 用户信息卡片 -->
+          <section class="info-card glass">
+            <div class="card-header">
+              <h3>基本信息</h3>
+              <button class="edit-toggle" @click="isEditing = !isEditing">
+                {{ isEditing ? '取消' : '编辑' }}
+              </button>
+            </div>
+            <div class="info-list">
+              <div class="info-item">
+                <span class="label">用户名</span>
+                <input 
+                  v-if="isEditing" 
+                  v-model="form.username" 
+                  type="text"
+                  class="input"
+                  placeholder="请输入用户名"
+                />
+                <span v-else class="value">{{ userStore.user.username }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">邮箱</span>
+                <input 
+                  v-if="isEditing" 
+                  v-model="form.email" 
+                  type="email"
+                  class="input"
+                  placeholder="请输入邮箱"
+                />
+                <span v-else class="value">{{ userStore.user.email || '未绑定' }}</span>
+              </div>
+            </div>
+            <button v-if="isEditing" class="save-btn" @click="saveProfile">
+              保存修改
             </button>
-          </div>
-          <form class="modal-content" @submit.prevent="handleChangePassword">
-            <div class="form-item" :class="{ 'has-error': passwordErrors.oldPassword }">
-              <label>当前密码</label>
-              <input 
-                v-model="passwordForm.oldPassword" 
-                type="password" 
-                placeholder="请输入当前密码"
-                @blur="validatePasswordField('oldPassword')"
-              />
-              <span v-if="passwordErrors.oldPassword" class="error-msg">{{ passwordErrors.oldPassword }}</span>
+          </section>
+        </div>
+
+        <!-- 右侧：密码修改和操作 -->
+        <div class="profile-right">
+          <!-- 修改密码卡片 -->
+          <section class="password-card glass">
+            <div class="card-header">
+              <h3>安全设置</h3>
             </div>
-            <div class="form-item" :class="{ 'has-error': passwordErrors.newPassword }">
-              <label>新密码</label>
-              <input 
-                v-model="passwordForm.newPassword" 
-                type="password" 
-                placeholder="请输入6-20位新密码"
-                @blur="validatePasswordField('newPassword')"
-              />
-              <span v-if="passwordErrors.newPassword" class="error-msg">{{ passwordErrors.newPassword }}</span>
-            </div>
-            <div class="form-item" :class="{ 'has-error': passwordErrors.confirmPassword }">
-              <label>确认新密码</label>
-              <input 
-                v-model="passwordForm.confirmPassword" 
-                type="password" 
-                placeholder="请再次输入新密码"
-                @blur="validatePasswordField('confirmPassword')"
-              />
-              <span v-if="passwordErrors.confirmPassword" class="error-msg">{{ passwordErrors.confirmPassword }}</span>
-            </div>
-            <button type="submit" class="submit-btn" :disabled="isSubmitting">
-              {{ isSubmitting ? '提交中...' : '确认修改' }}
-            </button>
-          </form>
+            <form class="password-form" @submit.prevent="handleChangePassword">
+              <div class="form-item" :class="{ 'has-error': passwordErrors.oldPassword }">
+                <label>当前密码</label>
+                <div class="input-wrapper">
+                  <input 
+                    v-model="passwordForm.oldPassword" 
+                    :type="showOldPassword ? 'text' : 'password'" 
+                    placeholder="请输入当前密码"
+                    @blur="validatePasswordField('oldPassword')"
+                  />
+                  <button type="button" class="toggle-password" @click="showOldPassword = !showOldPassword">
+                    <svg v-if="showOldPassword" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 4.5C7 4.5 2.73 7.61 1 12C2.73 16.39 7 19.5 12 19.5C17 19.5 21.27 16.39 23 12C21.27 7.61 17 4.5 12 4.5ZM12 17C9.24 17 7 14.76 7 12C7 9.24 9.24 7 12 7C14.76 7 17 9.24 17 12C17 14.76 14.76 17 12 17ZM12 9C10.34 9 9 10.34 9 12C9 13.66 10.34 15 12 15C13.66 15 15 13.66 15 12C15 10.34 13.66 9 12 9Z" fill="currentColor"/>
+                    </svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 7C14.76 7 17 9.24 17 12C17 12.65 16.87 13.26 16.64 13.83L19.56 16.75C21.07 15.49 22.26 13.86 22.99 12C21.26 7.61 16.99 4.5 11.99 4.5C10.59 4.5 9.25 4.75 8.01 5.2L10.17 7.36C10.74 7.13 11.35 7 12 7ZM2 4.27L4.28 6.55L4.74 7.01C3.08 8.3 1.78 10.02 1 12C2.73 16.39 7 19.5 12 19.5C13.55 19.5 15.03 19.2 16.38 18.66L16.8 19.08L19.73 22L21 20.73L3.27 3L2 4.27ZM7.53 9.8L9.08 11.35C9.03 11.56 9 11.78 9 12C9 13.66 10.34 15 12 15C12.22 15 12.44 14.97 12.65 14.92L14.2 16.47C13.53 16.8 12.79 17 12 17C9.24 17 7 14.76 7 12C7 11.21 7.2 10.47 7.53 9.8ZM11.84 9.02L14.99 12.17L15.01 12.01C15.01 10.35 13.67 9.01 12.01 9.01L11.84 9.02Z" fill="currentColor"/>
+                    </svg>
+                  </button>
+                </div>
+                <span v-if="passwordErrors.oldPassword" class="error-msg">{{ passwordErrors.oldPassword }}</span>
+              </div>
+              <div class="form-item" :class="{ 'has-error': passwordErrors.newPassword }">
+                <label>新密码</label>
+                <div class="input-wrapper">
+                  <input 
+                    v-model="passwordForm.newPassword" 
+                    :type="showNewPassword ? 'text' : 'password'" 
+                    placeholder="请输入6-20位新密码"
+                    @blur="validatePasswordField('newPassword')"
+                  />
+                  <button type="button" class="toggle-password" @click="showNewPassword = !showNewPassword">
+                    <svg v-if="showNewPassword" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 4.5C7 4.5 2.73 7.61 1 12C2.73 16.39 7 19.5 12 19.5C17 19.5 21.27 16.39 23 12C21.27 7.61 17 4.5 12 4.5ZM12 17C9.24 17 7 14.76 7 12C7 9.24 9.24 7 12 7C14.76 7 17 9.24 17 12C17 14.76 14.76 17 12 17ZM12 9C10.34 9 9 10.34 9 12C9 13.66 10.34 15 12 15C13.66 15 15 13.66 15 12C15 10.34 13.66 9 12 9Z" fill="currentColor"/>
+                    </svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 7C14.76 7 17 9.24 17 12C17 12.65 16.87 13.26 16.64 13.83L19.56 16.75C21.07 15.49 22.26 13.86 22.99 12C21.26 7.61 16.99 4.5 11.99 4.5C10.59 4.5 9.25 4.75 8.01 5.2L10.17 7.36C10.74 7.13 11.35 7 12 7ZM2 4.27L4.28 6.55L4.74 7.01C3.08 8.3 1.78 10.02 1 12C2.73 16.39 7 19.5 12 19.5C13.55 19.5 15.03 19.2 16.38 18.66L16.8 19.08L19.73 22L21 20.73L3.27 3L2 4.27ZM7.53 9.8L9.08 11.35C9.03 11.56 9 11.78 9 12C9 13.66 10.34 15 12 15C12.22 15 12.44 14.97 12.65 14.92L14.2 16.47C13.53 16.8 12.79 17 12 17C9.24 17 7 14.76 7 12C7 11.21 7.2 10.47 7.53 9.8ZM11.84 9.02L14.99 12.17L15.01 12.01C15.01 10.35 13.67 9.01 12.01 9.01L11.84 9.02Z" fill="currentColor"/>
+                    </svg>
+                  </button>
+                </div>
+                <span v-if="passwordErrors.newPassword" class="error-msg">{{ passwordErrors.newPassword }}</span>
+              </div>
+              <div class="form-item" :class="{ 'has-error': passwordErrors.confirmPassword }">
+                <label>确认新密码</label>
+                <div class="input-wrapper">
+                  <input 
+                    v-model="passwordForm.confirmPassword" 
+                    :type="showConfirmPassword ? 'text' : 'password'" 
+                    placeholder="请再次输入新密码"
+                    @blur="validatePasswordField('confirmPassword')"
+                  />
+                  <button type="button" class="toggle-password" @click="showConfirmPassword = !showConfirmPassword">
+                    <svg v-if="showConfirmPassword" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 4.5C7 4.5 2.73 7.61 1 12C2.73 16.39 7 19.5 12 19.5C17 19.5 21.27 16.39 23 12C21.27 7.61 17 4.5 12 4.5ZM12 17C9.24 17 7 14.76 7 12C7 9.24 9.24 7 12 7C14.76 7 17 9.24 17 12C17 14.76 14.76 17 12 17ZM12 9C10.34 9 9 10.34 9 12C9 13.66 10.34 15 12 15C13.66 15 15 13.66 15 12C15 10.34 13.66 9 12 9Z" fill="currentColor"/>
+                    </svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 7C14.76 7 17 9.24 17 12C17 12.65 16.87 13.26 16.64 13.83L19.56 16.75C21.07 15.49 22.26 13.86 22.99 12C21.26 7.61 16.99 4.5 11.99 4.5C10.59 4.5 9.25 4.75 8.01 5.2L10.17 7.36C10.74 7.13 11.35 7 12 7ZM2 4.27L4.28 6.55L4.74 7.01C3.08 8.3 1.78 10.02 1 12C2.73 16.39 7 19.5 12 19.5C13.55 19.5 15.03 19.2 16.38 18.66L16.8 19.08L19.73 22L21 20.73L3.27 3L2 4.27ZM7.53 9.8L9.08 11.35C9.03 11.56 9 11.78 9 12C9 13.66 10.34 15 12 15C12.22 15 12.44 14.97 12.65 14.92L14.2 16.47C13.53 16.8 12.79 17 12 17C9.24 17 7 14.76 7 12C7 11.21 7.2 10.47 7.53 9.8ZM11.84 9.02L14.99 12.17L15.01 12.01C15.01 10.35 13.67 9.01 12.01 9.01L11.84 9.02Z" fill="currentColor"/>
+                    </svg>
+                  </button>
+                </div>
+                <span v-if="passwordErrors.confirmPassword" class="error-msg">{{ passwordErrors.confirmPassword }}</span>
+              </div>
+              <button type="submit" class="submit-btn" :disabled="isSubmitting">
+                {{ isSubmitting ? '提交中...' : '修改密码' }}
+              </button>
+            </form>
+          </section>
+
+          <!-- 移动端退出登录 -->
+          <button class="logout-btn show-mobile" @click="handleLogout">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M17 7L15.59 8.41L18.17 11H8V13H18.17L15.59 15.58L17 17L22 12L17 7ZM4 5H12V3H4C2.9 3 2 3.9 2 5V19C2 20.1 2.9 21 4 21H12V19H4V5Z" fill="currentColor"/>
+            </svg>
+            退出登录
+          </button>
         </div>
       </div>
-    </Teleport>
+    </main>
 
     <!-- 移动端底部导航 -->
     <nav class="mobile-nav show-mobile">
@@ -157,16 +186,24 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { updateUserInfo, updatePassword } from '@/api/user'
+import toast from '@/utils/toast'
+import confirm from '@/utils/confirm'
 
 const router = useRouter()
 const userStore = useUserStore()
 
 const isEditing = ref(false)
-const showPasswordModal = ref(false)
 const isSubmitting = ref(false)
 const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
 
+// 密码显示状态
+const showOldPassword = ref(false)
+const showNewPassword = ref(false)
+const showConfirmPassword = ref(false)
+
 const form = reactive({
+  username: '',
   email: ''
 })
 
@@ -182,9 +219,15 @@ const passwordErrors = reactive({
   confirmPassword: ''
 })
 
-onMounted(() => {
-  userStore.loadUser()
+onMounted(async () => {
+  // 加载用户信息
+  try {
+    await userStore.fetchCurrentUser()
+  } catch (error) {
+    console.error('获取用户信息失败:', error)
+  }
   // 初始化表单
+  form.username = userStore.user.username
   form.email = userStore.user.email
 })
 
@@ -192,24 +235,40 @@ const goBack = () => {
   router.back()
 }
 
-const saveProfile = () => {
-  userStore.setUser({
-    ...userStore.user,
-    email: form.email
-  })
-  isEditing.value = false
+const saveProfile = async () => {
+  try {
+    await updateUserInfo({ 
+      username: form.username,
+      email: form.email 
+    })
+    userStore.setUser({
+      ...userStore.user,
+      username: form.username,
+      email: form.email
+    })
+    isEditing.value = false
+    toast.success('修改成功')
+  } catch (error) {
+    toast.error(error.message || '修改失败，请重试')
+  }
 }
 
-const handleLogout = () => {
-  if (confirm('确定要退出登录吗？')) {
-    userStore.logout()
+const handleLogout = async () => {
+  const confirmed = await confirm({
+    title: '退出登录',
+    message: '确定要退出登录吗？',
+    type: 'danger',
+    confirmText: '退出',
+    cancelText: '取消'
+  })
+  if (confirmed) {
+    await userStore.logout()
     router.push('/login')
   }
 }
 
-const closePasswordModal = () => {
-  showPasswordModal.value = false
-  // 重置表单
+// 重置密码表单
+const resetPasswordForm = () => {
   passwordForm.oldPassword = ''
   passwordForm.newPassword = ''
   passwordForm.confirmPassword = ''
@@ -267,12 +326,14 @@ const handleChangePassword = async () => {
   
   isSubmitting.value = true
   try {
-    // 模拟接口调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    alert('密码修改成功！')
-    closePasswordModal()
+    await updatePassword({
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword
+    })
+    toast.success('密码修改成功！')
+    resetPasswordForm()
   } catch (error) {
-    alert('密码修改失败，请重试')
+    toast.error(error.message || '密码修改失败，请重试')
   } finally {
     isSubmitting.value = false
   }
@@ -326,18 +387,28 @@ const handleChangePassword = async () => {
     color: $gray-800;
   }
   
-  .edit-btn {
+  .logout-btn-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     padding: 8px 16px;
     font-size: $font-size-sm;
     font-weight: 500;
-    color: $primary-color;
+    color: $gray-600;
     background: transparent;
-    border: none;
+    border: 1px solid $gray-200;
+    border-radius: $radius-md;
     cursor: pointer;
     transition: all $transition-fast;
     
+    svg {
+      flex-shrink: 0;
+    }
+    
     &:hover {
-      opacity: 0.8;
+      color: $error-color;
+      border-color: $error-color;
+      background: rgba($error-color, 0.05);
     }
   }
 }
@@ -352,17 +423,50 @@ const handleChangePassword = async () => {
   }
 }
 
+// PC端左右布局容器
+.profile-container {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  
+  @include mobile {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+// 左侧卡片
+.profile-left {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// 右侧卡片
+.profile-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// 头像区域
 .avatar-section {
   text-align: center;
-  margin-bottom: 24px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  border-radius: $radius-lg;
   
   .avatar-container {
     position: relative;
     display: inline-block;
+    margin-bottom: 16px;
     
     img {
-      width: 100px;
-      height: 100px;
+      width: 80px;
+      height: 80px;
       border-radius: $radius-full;
       object-fit: cover;
       border: 4px solid $white;
@@ -373,10 +477,10 @@ const handleChangePassword = async () => {
       position: absolute;
       bottom: 0;
       right: 0;
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       background: $primary-gradient;
-      border: 3px solid $white;
+      border: 2px solid $white;
       border-radius: $radius-full;
       cursor: pointer;
       color: $white;
@@ -386,85 +490,115 @@ const handleChangePassword = async () => {
       &:hover {
         transform: scale(1.1);
       }
+      
+      svg {
+        width: 14px;
+        height: 14px;
+      }
     }
+  }
+  
+  .username {
+    font-size: $font-size-lg;
+    font-weight: 600;
+    color: $gray-800;
+    margin: 0 0 4px;
+  }
+  
+  .user-email {
+    font-size: $font-size-sm;
+    color: $gray-500;
+    margin: 0;
   }
 }
 
-.info-section {
-  margin-bottom: 24px;
+// 信息卡片
+.info-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  border-radius: $radius-lg;
+  overflow: hidden;
   
-  .info-card {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(20px);
-    border-radius: $radius-lg;
-    padding: 8px 0;
-    margin-bottom: 20px;
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid $gray-100;
     
-    .info-item {
-      display: flex;
-      align-items: flex-start;
-      padding: 16px 20px;
-      border-bottom: 1px solid $gray-100;
+    h3 {
+      font-size: $font-size-base;
+      font-weight: 600;
+      color: $gray-800;
+      margin: 0;
+    }
+    
+    .edit-toggle {
+      padding: 6px 12px;
+      font-size: $font-size-xs;
+      font-weight: 500;
+      color: $primary-color;
+      background: rgba($primary-color, 0.1);
+      border: none;
+      border-radius: $radius-sm;
+      cursor: pointer;
+      transition: all $transition-fast;
       
-      &:last-child {
-        border-bottom: none;
+      &:hover {
+        background: rgba($primary-color, 0.15);
+      }
+    }
+  }
+  
+  .info-list {
+    padding: 8px 0;
+  }
+  
+  .info-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    
+    .label {
+      width: 80px;
+      font-size: $font-size-sm;
+      color: $gray-500;
+      flex-shrink: 0;
+    }
+    
+    .value {
+      flex: 1;
+      font-size: $font-size-sm;
+      color: $gray-800;
+    }
+    
+    .input {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: $font-size-sm;
+      color: $gray-800;
+      background: $gray-50;
+      border: 2px solid transparent;
+      border-radius: $radius-sm;
+      transition: all $transition-fast;
+      
+      &::placeholder {
+        color: $gray-400;
       }
       
-      label {
-        width: 80px;
-        font-size: $font-size-sm;
-        color: $gray-500;
-        flex-shrink: 0;
-        padding-top: 8px;
-      }
-      
-      .value {
-        flex: 1;
-        font-size: $font-size-sm;
-        color: $gray-800;
-        padding: 8px 0;
-        
-        &.readonly {
-          color: $gray-500;
-        }
-        
-        &.signature {
-          line-height: 1.6;
-        }
-      }
-      
-      .input {
-        flex: 1;
-        padding: 8px 12px;
-        font-size: $font-size-sm;
-        color: $gray-800;
-        background: $gray-50;
-        border: 2px solid transparent;
-        border-radius: $radius-sm;
-        transition: all $transition-fast;
-        
-        &::placeholder {
-          color: $gray-400;
-        }
-        
-        &:focus {
-          outline: none;
-          background: $white;
-          border-color: $primary-color;
-        }
-        
-        &.textarea {
-          resize: none;
-          line-height: 1.6;
-        }
+      &:focus {
+        outline: none;
+        background: $white;
+        border-color: $primary-color;
       }
     }
   }
   
   .save-btn {
-    width: 100%;
-    padding: 14px;
-    font-size: $font-size-base;
+    width: calc(100% - 40px);
+    margin: 12px 20px 20px;
+    padding: 12px;
+    font-size: $font-size-sm;
     font-weight: 600;
     color: $white;
     background: $primary-gradient;
@@ -480,63 +614,173 @@ const handleChangePassword = async () => {
   }
 }
 
-.menu-section {
-  .logout-btn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 14px;
-    font-size: $font-size-sm;
-    font-weight: 500;
-    color: $error-color;
-    background: rgba($error-color, 0.1);
-    border: none;
-    border-radius: $radius-md;
-    cursor: pointer;
-    transition: all $transition-fast;
-    
-    &:hover {
-      background: rgba($error-color, 0.15);
-    }
-  }
-}
-
-// 修改密码入口
-.password-section {
-  padding: 0 !important;
+// 密码卡片
+.password-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  border-radius: $radius-lg;
   overflow: hidden;
   
-  .change-password-btn {
-    width: 100%;
+  .card-header {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
     padding: 16px 20px;
-    font-size: $font-size-sm;
-    color: $gray-700;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    transition: all $transition-fast;
+    border-bottom: 1px solid $gray-100;
     
-    &:hover {
-      background: $gray-50;
+    h3 {
+      font-size: $font-size-base;
+      font-weight: 600;
+      color: $gray-800;
+      margin: 0;
+    }
+  }
+  
+  .password-form {
+    padding: 20px;
+    
+    .form-item {
+      margin-bottom: 16px;
+      
+      &:last-of-type {
+        margin-bottom: 20px;
+      }
+      
+      label {
+        display: block;
+        font-size: $font-size-sm;
+        font-weight: 500;
+        color: $gray-700;
+        margin-bottom: 8px;
+      }
+      
+      .input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        
+        input {
+          width: 100%;
+          padding: 10px 40px 10px 14px;
+          font-size: $font-size-sm;
+          color: $gray-800;
+          background: $gray-50;
+          border: 2px solid transparent;
+          border-radius: $radius-md;
+          transition: all $transition-fast;
+          
+          &::placeholder {
+            color: $gray-400;
+          }
+          
+          &:focus {
+            outline: none;
+            background: $white;
+            border-color: $primary-color;
+          }
+        }
+        
+        .toggle-password {
+          position: absolute;
+          right: 10px;
+          background: none;
+          border: none;
+          color: $gray-400;
+          cursor: pointer;
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: color $transition-fast;
+          
+          &:hover {
+            color: $primary-color;
+          }
+        }
+      }
+      
+      &.has-error {
+        .input-wrapper input {
+          border-color: $error-color;
+          background: rgba($error-color, 0.05);
+        }
+      }
+      
+      .error-msg {
+        display: block;
+        font-size: 12px;
+        color: $error-color;
+        margin-top: 6px;
+      }
     }
     
-    span {
-      flex: 1;
-      text-align: left;
-    }
-    
-    .arrow-icon {
-      color: $gray-400;
+    .submit-btn {
+      width: 100%;
+      padding: 12px;
+      font-size: $font-size-sm;
+      font-weight: 600;
+      color: $white;
+      background: $primary-gradient;
+      border: none;
+      border-radius: $radius-md;
+      cursor: pointer;
+      transition: all $transition-fast;
+      
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: $shadow-float;
+      }
+      
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
     }
   }
 }
 
-// 修改密码弹窗
+// 退出登录按钮（移动端）
+.logout-btn {
+  width: 100%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  font-size: $font-size-sm;
+  font-weight: 500;
+  color: $error-color;
+  background: rgba($error-color, 0.1);
+  border: none;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: all $transition-fast;
+  
+  @include mobile {
+    display: flex;
+  }
+  
+  &:hover {
+    background: rgba($error-color, 0.15);
+  }
+}
+
+// 显示/隐藏工具类
+.hide-mobile {
+  @include mobile {
+    display: none !important;
+  }
+}
+
+.show-mobile {
+  display: none;
+  
+  @include mobile {
+    display: flex;
+  }
+}
+
+// 修改密码弹窗（移动端保留）
 .modal-overlay {
   position: fixed;
   top: 0;

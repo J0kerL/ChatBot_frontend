@@ -231,6 +231,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import toast from '@/utils/toast'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -355,38 +356,31 @@ const handleSubmit = async () => {
   loading.value = true
   
   try {
-    // 模拟API请求
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
     if (isLogin.value) {
-      // 登录逻辑
-      userStore.setUser({
-        id: '1',
+      // 登录逻辑 - 调用真实API
+      await userStore.login({
         username: form.username,
-        nickname: form.username,
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${form.username}`,
-        email: `${form.username}@example.com`,
-        status: 'online',
-        signature: '这是我的个性签名'
+        password: form.password
       })
-      localStorage.setItem('isAuthenticated', 'true')
-      router.push('/chat')
+      // 登录成功先提示，再跳转
+      toast.success('登录成功')
+      setTimeout(() => {
+        router.push('/chat')
+      }, 800)
     } else {
-      // 注册成功后自动登录
-      userStore.setUser({
-        id: Date.now().toString(),
+      // 注册逻辑 - 调用真实API
+      await userStore.register({
         username: form.username,
-        nickname: form.username,
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${form.username}`,
-        email: form.email,
-        status: 'online',
-        signature: ''
+        password: form.password,
+        email: form.email
       })
-      localStorage.setItem('isAuthenticated', 'true')
-      router.push('/chat')
+      // 注册成功后提示并切换到登录
+      toast.success('注册成功，请登录')
+      switchTab(true)
     }
   } catch (error) {
     console.error('提交失败:', error)
+    toast.error(error.message || '操作失败，请重试')
   } finally {
     loading.value = false
   }
