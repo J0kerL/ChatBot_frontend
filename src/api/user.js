@@ -73,3 +73,21 @@ export function updatePassword(data) {
     data
   })
 }
+
+/**
+ * 上传用户头像
+ * @param {File} file - 头像文件
+ * @returns {Promise<string>} - 返回头像URL
+ */
+export function uploadAvatar(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    url: '/auth/avatar',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}

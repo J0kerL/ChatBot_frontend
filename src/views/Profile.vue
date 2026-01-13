@@ -25,14 +25,30 @@
           <section class="avatar-section">
             <div class="avatar-container">
               <img :src="userStore.user.avatar || defaultAvatar" :alt="userStore.user.username" />
-              <button v-if="isEditing" class="change-avatar-btn">
+              <!-- 头像上传按钮（不需要编辑模式） -->
+              <button class="change-avatar-btn" @click="triggerFileInput" :disabled="uploadingAvatar">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                   <path d="M3 4V1H5V4H8V6H5V9H3V6H0V4H3ZM6 10V7H9V4H16L17.83 6H21C22.1 6 23 6.9 23 8V20C23 21.1 22.1 22 21 22H5C3.9 22 3 21.1 3 20V10H6ZM13 19C15.76 19 18 16.76 18 14C18 11.24 15.76 9 13 9C10.24 9 8 11.24 8 14C8 16.76 10.24 19 13 19ZM9.8 14C9.8 15.77 11.23 17.2 13 17.2C14.77 17.2 16.2 15.77 16.2 14C16.2 12.23 14.77 10.8 13 10.8C11.23 10.8 9.8 12.23 9.8 14Z" fill="currentColor"/>
                 </svg>
               </button>
+              <!-- 隐藏的文件输入框 -->
+              <input 
+                ref="fileInput" 
+                type="file" 
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" 
+                style="display: none" 
+                @change="handleFileSelect"
+              />
             </div>
             <h2 class="username">{{ userStore.user.username }}</h2>
             <p class="user-email">{{ userStore.user.email || '未绑定邮箱' }}</p>
+            <!-- 上传进度提示 -->
+            <p v-if="uploadingAvatar" class="upload-hint">
+              <svg class="loading-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2V6M12 18V22M6 12H2M22 12H18M19.07 4.93L16.24 7.76M7.76 16.24L4.93 19.07M19.07 19.07L16.24 16.24M7.76 7.76L4.93 4.93" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              正在上传头像...
+            </p>
           </section>
 
           <!-- 用户信息卡片 -->
@@ -186,7 +202,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { updateUserInfo, updatePassword } from '@/api/user'
+import { updateUserInfo, updatePassword, uploadAvatar } from '@/api/user'
 import toast from '@/utils/toast'
 import confirm from '@/utils/confirm'
 
@@ -195,6 +211,8 @@ const userStore = useUserStore()
 
 const isEditing = ref(false)
 const isSubmitting = ref(false)
+const uploadingAvatar = ref(false)
+const fileInput = ref(null)
 const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
 
 // 密码显示状态
@@ -336,6 +354,51 @@ const handleChangePassword = async () => {
     toast.error(error.message || '密码修改失败，请重试')
   } finally {
     isSubmitting.value = false
+  }
+}
+
+// 触发文件选择
+const triggerFileInput = () => {
+  fileInput.value?.click()
+}
+
+// 处理文件选择
+const handleFileSelect = async (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  // 验证文件类型
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+  if (!allowedTypes.includes(file.type)) {
+    toast.error('只支持 JPG、PNG、GIF、WEBP 格式的图片')
+    return
+  }
+
+  // 验证文件大小（10MB）
+  const maxSize = 10 * 1024 * 1024
+  if (file.size > maxSize) {
+    toast.error('图片大小不能超过 10MB')
+    return
+  }
+
+  // 上传头像
+  uploadingAvatar.value = true
+  try {
+    const avatarUrl = await uploadAvatar(file)
+    // 更新用户信息
+    userStore.setUser({
+      ...userStore.user,
+      avatar: avatarUrl
+    })
+    toast.success('头像上传成功！')
+    // 清空文件输入框
+    if (fileInput.value) {
+      fileInput.value.value = ''
+    }
+  } catch (error) {
+    toast.error(error.message || '头像上传失败，请重试')
+  } finally {
+    uploadingAvatar.value = false
   }
 }
 </script>
@@ -487,8 +550,13 @@ const handleChangePassword = async () => {
       @include flex-center;
       transition: all $transition-fast;
       
-      &:hover {
+      &:hover:not(:disabled) {
         transform: scale(1.1);
+      }
+      
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
       
       svg {
@@ -509,6 +577,29 @@ const handleChangePassword = async () => {
     font-size: $font-size-sm;
     color: $gray-500;
     margin: 0;
+  }
+  
+  .upload-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-size: $font-size-xs;
+    color: $primary-color;
+    
+    .loading-icon {
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
   }
 }
 
