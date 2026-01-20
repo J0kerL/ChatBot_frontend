@@ -1,5 +1,5 @@
 <template>
-  <div class="chat-page">
+  <div class="chat-detail-page">
     <!-- 侧边导航栏 -->
     <aside class="sidebar">
       <div class="sidebar-top">
@@ -10,15 +10,14 @@
       </div>
       
       <nav class="nav-menu">
-        <router-link to="/messages" class="nav-item" :class="{ active: currentRoute === 'Messages' || currentRoute === 'Chat' }">
+        <router-link to="/messages" class="nav-item active">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H5.17L4 17.17V4H20V16Z" fill="currentColor"/>
           </svg>
           <span class="nav-label">消息</span>
-          <span v-if="chatStore.totalUnread > 0" class="badge">{{ chatStore.totalUnread > 99 ? '99+' : chatStore.totalUnread }}</span>
         </router-link>
         
-        <router-link to="/contacts" class="nav-item" :class="{ active: currentRoute === 'Contacts' }">
+        <router-link to="/contacts" class="nav-item">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M16 11C17.66 11 18.99 9.66 18.99 8C18.99 6.34 17.66 5 16 5C14.34 5 13 6.34 13 8C13 9.66 14.34 11 16 11ZM8 11C9.66 11 10.99 9.66 10.99 8C10.99 6.34 9.66 5 8 5C6.34 5 5 6.34 5 8C5 9.66 6.34 11 8 11ZM8 13C5.67 13 1 14.17 1 16.5V19H15V16.5C15 14.17 10.33 13 8 13ZM16 13C15.71 13 15.38 13.02 15.03 13.05C16.19 13.89 17 15.02 17 16.5V19H23V16.5C23 14.17 18.33 13 16 13Z" fill="currentColor"/>
           </svg>
@@ -27,78 +26,30 @@
       </nav>
     </aside>
 
-    <!-- 会话列表 -->
-    <section class="conversation-list">
-      <div class="list-header">
-        <h2>消息</h2>
-        <button class="action-btn" title="发起聊天">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" fill="currentColor"/>
-          </svg>
-        </button>
-      </div>
-      
-      <div class="search-box">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11 16 12.59 15.41 13.73 14.43L14 14.71V15.5L19 20.49L20.49 19L15.5 14ZM9.5 14C7.01 14 5 11.99 5 9.5C5 7.01 7.01 5 9.5 5C11.99 5 14 7.01 14 9.5C14 11.99 11.99 14 9.5 14Z" fill="currentColor"/>
-        </svg>
-        <input 
-          v-model="searchKeyword" 
-          type="text" 
-          placeholder="搜索"
-          @input="handleSearch"
-        />
-      </div>
-      
-      <div class="conversations custom-scrollbar">
-        <ConversationItem
-          v-for="conversation in chatStore.filteredConversations"
-          :key="conversation.id"
-          :conversation="conversation"
-          :active="chatStore.currentConversation?.id === conversation.id"
-          @click="selectConversation(conversation)"
-        />
-        <div v-if="chatStore.filteredConversations.length === 0" class="empty-list">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-            <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H5.17L4 17.17V4H20V16Z" fill="currentColor"/>
-          </svg>
-          <p>暂无会话</p>
-        </div>
-      </div>
-    </section>
-
     <!-- 聊天区域 -->
     <main class="chat-area">
-      <template v-if="chatStore.currentConversation">
+      <div v-if="loading" class="loading">加载中...</div>
+      
+      <template v-else-if="conversation">
         <!-- 聊天头部 -->
-        <header class="chat-header glass">
+        <header class="chat-header">
+          <button class="back-btn" @click="goBack">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M20 11H7.83L13.42 5.41L12 4L4 12L12 20L13.41 18.59L7.83 13H20V11Z" fill="currentColor"/>
+            </svg>
+          </button>
           <div class="chat-info">
             <div class="avatar-wrapper">
-              <img :src="chatStore.currentConversation.avatar" :alt="chatStore.currentConversation.name" />
-              <span v-if="chatStore.currentConversation.online" class="online-dot"></span>
+              <img :src="conversation.avatar || defaultAvatar" :alt="conversation.name" />
+              <span v-if="conversation.online" class="online-dot"></span>
             </div>
             <div class="info">
-              <h3>{{ chatStore.currentConversation.name }}</h3>
-              <span class="status">
-                {{ chatStore.currentConversation.type === 'group' 
-                  ? `${chatStore.currentConversation.memberCount}位成员` 
-                  : (chatStore.currentConversation.online ? '在线' : '离线') 
-                }}
-              </span>
+              <h3>{{ conversation.name }}</h3>
+              <span class="status">{{ conversation.relationship || '在线' }}</span>
             </div>
           </div>
           <div class="chat-actions">
-            <button class="action-btn" title="语音通话">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M20.01 15.38C18.78 15.38 17.59 15.18 16.48 14.82C16.13 14.7 15.74 14.79 15.47 15.06L13.9 17.03C11.07 15.68 8.42 13.13 7.01 10.2L8.96 8.54C9.23 8.26 9.31 7.87 9.2 7.52C8.83 6.41 8.64 5.22 8.64 3.99C8.64 3.45 8.19 3 7.65 3H4.19C3.65 3 3 3.24 3 3.99C3 13.28 10.73 21 20.01 21C20.72 21 21 20.37 21 19.82V16.37C21 15.83 20.55 15.38 20.01 15.38Z" fill="currentColor"/>
-              </svg>
-            </button>
-            <button class="action-btn" title="视频通话">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M17 10.5V7C17 6.45 16.55 6 16 6H4C3.45 6 3 6.45 3 7V17C3 17.55 3.45 18 4 18H16C16.55 18 17 17.55 17 17V13.5L21 17.5V6.5L17 10.5Z" fill="currentColor"/>
-              </svg>
-            </button>
-            <button class="action-btn" title="更多">
+            <button class="action-btn" title="更多" @click="showMoreMenu = !showMoreMenu">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                 <path d="M12 8C13.1 8 14 7.1 14 6C14 4.9 13.1 4 12 4C10.9 4 10 4.9 10 6C10 7.1 10.9 8 12 8ZM12 10C10.9 10 10 10.9 10 12C10 13.1 10.9 14 12 14C13.1 14 14 13.1 14 12C14 10.9 13.1 10 12 10ZM12 16C10.9 16 10 16.9 10 18C10 19.1 10.9 20 12 20C13.1 20 14 19.1 14 18C14 16.9 13.1 16 12 16Z" fill="currentColor"/>
               </svg>
@@ -108,51 +59,71 @@
 
         <!-- 消息列表 -->
         <div class="messages-container custom-scrollbar" ref="messagesContainer">
-          <MessageItem
-            v-for="message in chatStore.currentMessages"
+          <div v-if="messages.length === 0" class="empty-messages">
+            <p>开始聊天吧~</p>
+          </div>
+          <div 
+            v-for="message in messages" 
             :key="message.id"
-            :message="message"
-          />
+            class="message-item"
+            :class="{ 'message-self': message.sender === 'self' }"
+          >
+            <div class="message-avatar">
+              <img :src="message.sender === 'self' ? userStore.user.avatar : conversation.avatar" />
+            </div>
+            <div class="message-content">
+              <div class="message-bubble">{{ message.content }}</div>
+              <div class="message-time">{{ formatTime(message.timestamp) }}</div>
+            </div>
+          </div>
         </div>
 
         <!-- 输入区域 -->
-        <MessageInput @send="handleSendMessage" />
+        <div class="input-area">
+          <div class="input-toolbar">
+            <button class="toolbar-btn" title="表情">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M11.99 2C6.47 2 2 6.48 2 12C2 17.52 6.47 22 11.99 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 11.99 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20ZM15.5 11C16.33 11 17 10.33 17 9.5C17 8.67 16.33 8 15.5 8C14.67 8 14 8.67 14 9.5C14 10.33 14.67 11 15.5 11ZM8.5 11C9.33 11 10 10.33 10 9.5C10 8.67 9.33 8 8.5 8C7.67 8 7 8.67 7 9.5C7 10.33 7.67 11 8.5 11ZM12 17.5C14.33 17.5 16.31 16.04 17.11 14H6.89C7.69 16.04 9.67 17.5 12 17.5Z" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
+          <div class="input-box">
+            <textarea 
+              v-model="inputMessage"
+              placeholder="输入消息..."
+              @keydown.enter.exact.prevent="handleSend"
+              @keydown.enter.shift.exact="inputMessage += '\n'"
+            ></textarea>
+            <button class="send-btn" @click="handleSend" :disabled="!inputMessage.trim()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
+        </div>
       </template>
 
-      <!-- 空状态 -->
       <div v-else class="empty-chat">
-        <div class="empty-illustration">
-          <svg width="120" height="120" viewBox="0 0 24 24" fill="none">
-            <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H5.17L4 17.17V4H20V16Z" fill="url(#emptyGradient)"/>
-            <defs>
-              <linearGradient id="emptyGradient" x1="2" y1="2" x2="22" y2="22">
-                <stop stop-color="#667eea" stop-opacity="0.3"/>
-                <stop offset="1" stop-color="#764ba2" stop-opacity="0.3"/>
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-        <h3>选择一个会话开始聊天</h3>
-        <p>从左侧列表中选择一个会话，或者开始新的对话</p>
+        <p>会话不存在</p>
+        <button class="btn-primary" @click="goBack">返回消息列表</button>
       </div>
     </main>
 
     <!-- 移动端底部导航 -->
     <nav class="mobile-nav show-mobile">
-      <router-link to="/messages" class="mobile-nav-item" :class="{ active: currentRoute === 'Messages' || currentRoute === 'Chat' }">
+      <router-link to="/messages" class="mobile-nav-item active">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
         </svg>
         <span>消息</span>
-        <span v-if="chatStore.totalUnread > 0" class="badge">{{ chatStore.totalUnread > 99 ? '99+' : chatStore.totalUnread }}</span>
       </router-link>
-      <router-link to="/contacts" class="mobile-nav-item" :class="{ active: currentRoute === 'Contacts' }">
+      <router-link to="/contacts" class="mobile-nav-item">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path d="M16 11C17.66 11 18.99 9.66 18.99 8C18.99 6.34 17.66 5 16 5C14.34 5 13 6.34 13 8C13 9.66 14.34 11 16 11ZM8 11C9.66 11 10.99 9.66 10.99 8C10.99 6.34 9.66 5 8 5C6.34 5 5 6.34 5 8C5 9.66 6.34 11 8 11ZM8 13C5.67 13 1 14.17 1 16.5V19H15V16.5C15 14.17 10.33 13 8 13ZM16 13C15.71 13 15.38 13.02 15.03 13.05C16.19 13.89 17 15.02 17 16.5V19H23V16.5C23 14.17 18.33 13 16 13Z" fill="currentColor"/>
         </svg>
         <span>联系人</span>
       </router-link>
-      <router-link to="/profile" class="mobile-nav-item" :class="{ active: currentRoute === 'Profile' }">
+      <router-link to="/profile" class="mobile-nav-item">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z" fill="currentColor"/>
         </svg>
@@ -163,40 +134,61 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useChatStore } from '@/stores/chat'
-import ConversationItem from '@/components/ConversationItem.vue'
-import MessageItem from '@/components/MessageItem.vue'
-import MessageInput from '@/components/MessageInput.vue'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const chatStore = useChatStore()
 
-const searchKeyword = ref('')
+const loading = ref(false)
+const conversation = ref(null)
+const messages = ref([])
+const inputMessage = ref('')
 const messagesContainer = ref(null)
+const showMoreMenu = ref(false)
 const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
-
-const currentRoute = computed(() => route.name)
 
 onMounted(() => {
   userStore.loadUser()
-  chatStore.loadConversations()
+  loadConversation()
 })
 
-const handleSearch = () => {
-  chatStore.setSearchKeyword(searchKeyword.value)
+const loadConversation = async () => {
+  const conversationId = parseInt(route.params.id)
+  if (!conversationId) {
+    return
+  }
+  
+  try {
+    loading.value = true
+    // 从store中查找会话
+    const conv = chatStore.conversations.find(c => c.id === conversationId)
+    if (conv) {
+      conversation.value = conv
+      chatStore.selectConversation(conv)
+      // 标记已读
+      await chatStore.markRead(conversationId)
+      // 加载消息
+      messages.value = chatStore.currentMessages
+    }
+  } catch (error) {
+    console.error('加载会话失败:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
-const selectConversation = (conversation) => {
-  chatStore.selectConversation(conversation)
-}
-
-const handleSendMessage = (content) => {
-  chatStore.sendMessage(content)
+const handleSend = () => {
+  if (!inputMessage.value.trim()) return
+  
+  const message = chatStore.sendMessage(inputMessage.value.trim())
+  messages.value = chatStore.currentMessages
+  inputMessage.value = ''
+  
   nextTick(() => {
     scrollToBottom()
   })
@@ -208,26 +200,33 @@ const scrollToBottom = () => {
   }
 }
 
+const formatTime = (timestamp) => {
+  if (!timestamp) return ''
+  const date = new Date(timestamp)
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+}
+
+const goBack = () => {
+  router.push('/messages')
+}
+
 const goToProfile = () => {
   router.push('/profile')
 }
 
 // 监听消息变化，自动滚动到底部
-watch(
-  () => chatStore.currentMessages.length,
-  () => {
-    nextTick(() => {
-      scrollToBottom()
-    })
-  }
-)
+watch(() => messages.value.length, () => {
+  nextTick(() => {
+    scrollToBottom()
+  })
+})
 </script>
 
 <style lang="scss" scoped>
 @import '@/styles/variables.scss';
 @import '@/styles/mixins.scss';
 
-.chat-page {
+.chat-detail-page {
   display: flex;
   height: 100vh;
   background: $bg-primary;
@@ -235,6 +234,10 @@ watch(
   
   @include mobile {
     flex-direction: column;
+    
+    .mobile-nav {
+      display: none !important;
+    }
   }
 }
 
@@ -309,8 +312,6 @@ watch(
     cursor: pointer;
     transition: all $transition-fast;
     text-decoration: none;
-    background: none;
-    border: none;
     
     &:hover {
       background: rgba(255, 255, 255, 0.1);
@@ -326,51 +327,33 @@ watch(
       font-size: 10px;
       margin-top: 2px;
     }
-    
-    .badge {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      min-width: 16px;
-      height: 16px;
-      padding: 0 4px;
-      font-size: 10px;
-      background: $error-color;
-      color: $white;
-      border-radius: $radius-full;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
   }
 }
 
-// 会话列表
-.conversation-list {
-  width: 320px;
-  background: $white;
+// 聊天区域
+.chat-area {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid $gray-100;
-  flex-shrink: 0;
+  background: $white;
+  min-width: 0;
   
-  @include mobile {
-    width: 100%;
+  .loading {
     flex: 1;
-    padding-bottom: 70px;
+    @include flex-center;
+    color: $gray-400;
   }
   
-  .list-header {
-    @include flex-between;
-    padding: 20px;
+  .chat-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    background: $white;
+    border-bottom: 1px solid $gray-100;
+    flex-shrink: 0;
     
-    h2 {
-      font-size: $font-size-xl;
-      font-weight: 600;
-      color: $gray-800;
-    }
-    
-    .action-btn {
+    .back-btn {
       width: 36px;
       height: 36px;
       border: none;
@@ -380,90 +363,16 @@ watch(
       color: $gray-600;
       @include flex-center;
       transition: all $transition-fast;
+      flex-shrink: 0;
       
       &:hover {
-        background: $primary-color;
-        color: $white;
+        background: $gray-100;
+        color: $gray-800;
       }
     }
-  }
-  
-  .search-box {
-    margin: 0 20px 16px;
-    padding: 10px 14px;
-    background: $gray-50;
-    border-radius: $radius-md;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    
-    svg {
-      color: $gray-400;
-      flex-shrink: 0;
-    }
-    
-    input {
-      flex: 1;
-      border: none;
-      background: transparent;
-      font-size: $font-size-sm;
-      color: $gray-800;
-      outline: none;
-      
-      &::placeholder {
-        color: $gray-400;
-      }
-    }
-  }
-  
-  .conversations {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0 12px;
-  }
-  
-  .empty-list {
-    @include flex-center;
-    flex-direction: column;
-    padding: 40px 20px;
-    color: $gray-400;
-    
-    svg {
-      margin-bottom: 16px;
-      opacity: 0.5;
-    }
-    
-    p {
-      font-size: $font-size-sm;
-    }
-  }
-}
-
-// 聊天区域
-.chat-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: $bg-chat;
-  min-width: 0;
-  
-  @include mobile {
-    display: none;
-    
-    &.show {
-      display: flex;
-    }
-  }
-  
-  .chat-header {
-    @include flex-between;
-    padding: 16px 24px;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    flex-shrink: 0;
     
     .chat-info {
+      flex: 1;
       display: flex;
       align-items: center;
       gap: 12px;
@@ -532,6 +441,149 @@ watch(
     flex: 1;
     overflow-y: auto;
     padding: 20px 24px;
+    background: $bg-chat;
+    
+    .empty-messages {
+      @include flex-center;
+      height: 100%;
+      color: $gray-400;
+      font-size: $font-size-sm;
+    }
+    
+    .message-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      
+      &.message-self {
+        flex-direction: row-reverse;
+        
+        .message-content {
+          align-items: flex-end;
+          
+          .message-bubble {
+            background: $bubble-self;
+            color: $white;
+          }
+        }
+      }
+      
+      .message-avatar {
+        flex-shrink: 0;
+        
+        img {
+          width: 40px;
+          height: 40px;
+          border-radius: $radius-full;
+          object-fit: cover;
+        }
+      }
+      
+      .message-content {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-width: 60%;
+        
+        .message-bubble {
+          padding: 12px 16px;
+          background: $bubble-other;
+          border-radius: $radius-lg;
+          font-size: $font-size-sm;
+          color: $gray-800;
+          word-wrap: break-word;
+          box-shadow: $shadow-sm;
+        }
+        
+        .message-time {
+          font-size: $font-size-xs;
+          color: $gray-400;
+          padding: 0 4px;
+        }
+      }
+    }
+  }
+  
+  .input-area {
+    background: $white;
+    border-top: 1px solid $gray-100;
+    padding: 16px 24px;
+    flex-shrink: 0;
+    
+    .input-toolbar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      
+      .toolbar-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        border-radius: $radius-md;
+        cursor: pointer;
+        color: $gray-500;
+        @include flex-center;
+        transition: all $transition-fast;
+        
+        &:hover {
+          background: $gray-100;
+          color: $primary-color;
+        }
+      }
+    }
+    
+    .input-box {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      
+      textarea {
+        flex: 1;
+        min-height: 80px;
+        max-height: 200px;
+        padding: 12px 16px;
+        border: 1px solid $gray-200;
+        border-radius: $radius-md;
+        font-size: $font-size-sm;
+        color: $gray-800;
+        resize: vertical;
+        outline: none;
+        font-family: $font-family;
+        overflow-y: hidden;
+        
+        &:focus {
+          border-color: $primary-color;
+        }
+        
+        &::placeholder {
+          color: $gray-400;
+        }
+      }
+      
+      .send-btn {
+        width: 40px;
+        height: 40px;
+        border: none;
+        background: $primary-gradient;
+        border-radius: $radius-full;
+        cursor: pointer;
+        color: $white;
+        @include flex-center;
+        transition: all $transition-fast;
+        flex-shrink: 0;
+        
+        &:hover:not(:disabled) {
+          transform: scale(1.05);
+          box-shadow: $shadow-float;
+        }
+        
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+    }
   }
   
   .empty-chat {
@@ -540,22 +592,26 @@ watch(
     flex-direction: column;
     color: $gray-400;
     
-    .empty-illustration {
-      margin-bottom: 24px;
-      
-      svg {
-        opacity: 0.8;
-      }
-    }
-    
-    h3 {
-      font-size: $font-size-lg;
-      color: $gray-600;
-      margin-bottom: 8px;
-    }
-    
     p {
+      font-size: $font-size-base;
+      margin-bottom: 20px;
+    }
+    
+    .btn-primary {
+      padding: 12px 24px;
+      background: $primary-gradient;
+      color: $white;
+      border: none;
+      border-radius: $radius-md;
       font-size: $font-size-sm;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all $transition-fast;
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: $shadow-float;
+      }
     }
   }
 }
@@ -580,7 +636,6 @@ watch(
   }
   
   .mobile-nav-item {
-    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -594,24 +649,8 @@ watch(
       color: $primary-color;
     }
     
-    span:last-of-type:not(.badge) {
+    span {
       font-size: 11px;
-    }
-    
-    .badge {
-      position: absolute;
-      top: 0;
-      right: 8px;
-      min-width: 16px;
-      height: 16px;
-      padding: 0 4px;
-      font-size: 10px;
-      background: $error-color;
-      color: $white;
-      border-radius: $radius-full;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
   }
 }

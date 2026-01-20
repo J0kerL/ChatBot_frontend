@@ -121,9 +121,11 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getAiCharacterById, deleteAiCharacter } from '@/api/aiCharacter'
 import { showDeleteConfirm, showAlert } from '@/utils/dialog'
+import { useChatStore } from '@/stores/chat'
 
 const router = useRouter()
 const route = useRoute()
+const chatStore = useChatStore()
 
 const loading = ref(false)
 const aiCharacter = ref(null)
@@ -173,9 +175,15 @@ const handleDelete = async () => {
   }
 }
 
-const startChat = () => {
-  // TODO: 跳转到聊天页面
-  router.push('/chat')
+const startChat = async () => {
+  try {
+    // 创建或获取会话
+    const conversation = await chatStore.createNewConversation(aiCharacter.value.id)
+    // 跳转到聊天页面
+    router.push(`/messages/${conversation.id}`)
+  } catch (error) {
+    await showAlert('创建会话失败: ' + error.message, { confirmType: 'danger' })
+  }
 }
 
 const formatDate = (dateStr) => {

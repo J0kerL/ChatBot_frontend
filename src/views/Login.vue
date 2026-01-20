@@ -365,7 +365,7 @@ const handleSubmit = async () => {
       // 登录成功先提示，再跳转
       toast.success('登录成功')
       setTimeout(() => {
-        router.push('/chat')
+        router.push('/messages')
       }, 800)
     } else {
       // 注册逻辑 - 调用真实API

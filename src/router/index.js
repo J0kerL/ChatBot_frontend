@@ -3,7 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 const routes = [
   {
     path: '/',
-    redirect: '/chat'
+    redirect: '/messages'
   },
   {
     path: '/login',
@@ -12,9 +12,15 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
-    path: '/chat',
-    name: 'Chat',
-    component: () => import('@/views/Chat.vue'),
+    path: '/messages',
+    name: 'Messages',
+    component: () => import('@/views/Messages.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/messages/:id',
+    name: 'ChatDetail',
+    component: () => import('@/views/ChatDetail.vue'),
     meta: { requiresAuth: true }
   },
   {
@@ -105,7 +111,7 @@ router.beforeEach(async (to, from, next) => {
   if (to.path === '/login' && isAuthenticated) {
     const valid = await validateToken()
     if (valid) {
-      next('/chat')
+      next('/messages')
       return
     }
   }
