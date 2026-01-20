@@ -60,19 +60,57 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫
-router.beforeEach((to, from, next) => {
-  // 优先使用token判断登录状态
+const validateToken = async () => {
+  const token = localStorage.getItem('token')
+  if (!token) {
+    return false
+  }
+  try {
+    const response = await fetch('/api/auth/current', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    if (!response.ok) {
+      return false
+    }
+    const data = await response.json()
+    return data?.code === 0
+  } catch (error) {
+    return false
+  }
+}
+
+router.beforeEach(async (to, from, next) => {
   const token = localStorage.getItem('token')
   const isAuthenticated = !!token
-  
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login')
-  } else if (to.path === '/login' && isAuthenticated) {
-    next('/chat')
-  } else {
+
+  if (to.meta.requiresAuth) {
+    if (!isAuthenticated) {
+      next('/login')
+      return
+    }
+    const valid = await validateToken()
+    if (!valid) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      localStorage.removeItem('isAuthenticated')
+      next('/login')
+      return
+    }
     next()
+    return
   }
+
+  if (to.path === '/login' && isAuthenticated) {
+    const valid = await validateToken()
+    if (valid) {
+      next('/chat')
+      return
+    }
+  }
+
+  next()
 })
 
 export default router
