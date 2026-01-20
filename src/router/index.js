@@ -34,6 +34,24 @@ const routes = [
     name: 'Settings',
     component: () => import('@/views/Settings.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/ai/add',
+    name: 'AddAiCharacter',
+    component: () => import('@/views/AddAiCharacter.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/ai/detail/:id',
+    name: 'AiCharacterDetail',
+    component: () => import('@/views/AiCharacterDetail.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/ai/edit/:id',
+    name: 'EditAiCharacter',
+    component: () => import('@/views/EditAiCharacter.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 
