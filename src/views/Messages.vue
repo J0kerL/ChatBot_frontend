@@ -675,7 +675,7 @@ watch(showCreateDialog, watchDialog)
     }
     
     &.pinned {
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(52, 211, 153, 0.05) 100%);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(52, 211, 153, 0.05) 100%), $white;
       border-color: rgba(16, 185, 129, 0.2);
     }
     
