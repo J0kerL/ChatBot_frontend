@@ -95,7 +95,7 @@
 
           <div class="form-group">
             <label>性格标签</label>
-            <div class="tags-input">
+            <div class="tags-input" :class="{ 'focused': tagInputFocused }">
               <span 
                 v-for="(tag, index) in formData.personalityTags" 
                 :key="index"
@@ -104,15 +104,28 @@
                 {{ tag }}
                 <button type="button" @click="removeTag(index)" class="tag-remove">×</button>
               </span>
-              <input 
-                v-model="newTag"
-                type="text" 
-                placeholder="输入标签后按回车" 
-                @keydown.enter.prevent="addTag"
-                maxlength="10"
-              />
+              <div class="tag-input-wrapper">
+                <input 
+                  ref="tagInput"
+                  v-model="newTag"
+                  type="text" 
+                  placeholder="输入标签" 
+                  @keydown.enter.prevent="addTag"
+                  @focus="tagInputFocused = true"
+                  @blur="tagInputFocused = false"
+                  maxlength="10"
+                />
+                <button 
+                  v-if="newTag.trim()"
+                  type="button" 
+                  class="btn-add-tag"
+                  @click="addTag"
+                >
+                  添加
+                </button>
+              </div>
             </div>
-            <p class="form-hint">例如：温柔、体贴、幽默</p>
+            <p class="form-hint">例如：温柔、体贴、幽默（最多10个）</p>
           </div>
         </div>
 
@@ -178,6 +191,8 @@ const avatarInput = ref(null)
 const loading = ref(false)
 const submitting = ref(false)
 const newTag = ref('')
+const tagInputFocused = ref(false)
+const tagInput = ref(null)
 
 const formData = reactive({
   id: null,
@@ -539,7 +554,8 @@ const goBack = () => {
   min-height: 46px;
   transition: all $transition-fast;
   
-  &:focus-within {
+  &:focus-within,
+  &.focused {
     border-color: $primary-color;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   }
@@ -574,15 +590,53 @@ const goBack = () => {
     }
   }
   
-  input {
+  .tag-input-wrapper {
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     min-width: 120px;
-    border: none;
-    outline: none;
-    font-size: $font-size-sm;
     
-    &::placeholder {
-      color: $gray-400;
+    @include mobile {
+      min-width: 100%;
+    }
+    
+    input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: $font-size-sm;
+      min-width: 80px;
+      
+      &::placeholder {
+        color: $gray-400;
+      }
+    }
+    
+    .btn-add-tag {
+      padding: 6px 16px;
+      background: $primary-gradient;
+      color: $white;
+      border: none;
+      border-radius: $radius-md;
+      font-size: $font-size-xs;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all $transition-fast;
+      
+      @include mobile {
+        padding: 8px 20px;
+        font-size: $font-size-sm;
+      }
+      
+      &:hover {
+        transform: scale(1.05);
+      }
+      
+      &:active {
+        transform: scale(0.95);
+      }
     }
   }
 }
