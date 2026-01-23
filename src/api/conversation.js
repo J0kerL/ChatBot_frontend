@@ -56,3 +56,16 @@ export const markConversationRead = (id) => {
     method: 'put'
   })
 }
+
+/**
+ * 更新会话信息
+ * @param {number} id - 会话ID
+ * @param {object} data - 更新数据
+ */
+export const updateConversation = (id, data) => {
+  return request({
+    url: `/conversation/${id}`,
+    method: 'put',
+    data
+  })
+}

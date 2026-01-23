@@ -69,7 +69,7 @@
               <h3>{{ character.name }}</h3>
               <p class="relationship">{{ character.relationship }}</p>
               <div class="tags" v-if="character.personalityTags && character.personalityTags.length">
-                <span v-for="tag in character.personalityTags.slice(0, 3)" :key="tag" class="tag">
+                <span v-for="tag in character.personalityTags" :key="tag" class="tag">
                   {{ tag }}
                 </span>
               </div>

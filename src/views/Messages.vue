@@ -755,6 +755,7 @@ watch(showCreateDialog, watchDialog)
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 8px;
         
         .last-message {
           flex: 1;
@@ -774,7 +775,13 @@ watch(showCreateDialog, watchDialog)
           border-radius: $radius-full;
           @include flex-center;
           flex-shrink: 0;
-          margin-left: 8px;
+          
+          @media (min-width: 769px) {
+            position: absolute;
+            top: 50%;
+            right: 16px;
+            transform: translateY(-50%);
+          }
         }
       }
     }

@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { getConversationList, createConversation, deleteConversation as deleteConversationApi, pinConversation, markConversationRead } from '@/api/conversation'
 import { getAiCharacterById } from '@/api/aiCharacter'
+import { sendMessage as sendMessageApi, getMessageList } from '@/api/message'
+import websocket from '@/utils/websocket'
 
 export const useChatStore = defineStore('chat', () => {
   // 会话列表
@@ -16,6 +18,8 @@ export const useChatStore = defineStore('chat', () => {
   const loading = ref(false)
   // AI角色信息缓存
   const characterCache = ref({})
+  // WebSocket消息处理器
+  let wsMessageHandler = null
 
   // 过滤后的会话列表
   const filteredConversations = computed(() => {
@@ -66,10 +70,11 @@ export const useChatStore = defineStore('chat', () => {
             name: character.name,
             avatar: character.avatar,
             relationship: character.relationship,
-            online: false, // 后续可以通过WebSocket实现在线状态
-            lastMessage: '开始聊天吧~',
+            online: false,
+            // 使用后端返回的最后一条消息，如果没有则显示默认文本
+            lastMessage: conv.lastMessage || '开始聊天吧~',
             lastTime: conv.lastMessageTime || conv.createdAt,
-            unread: conv.unreadCount || 0,
+            unread: 0,
             type: 'single'
           }
         })
@@ -85,10 +90,33 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   // 加载消息列表
-  const loadMessages = (conversationId) => {
-    // 这里后续替换为真实API调用
-    if (!messages.value[conversationId]) {
-      messages.value[conversationId] = []
+  const loadMessages = async (conversationId) => {
+    try {
+      loading.value = true
+      const result = await getMessageList(conversationId, 1, 50)
+      
+      // 转换消息格式
+      const formattedMessages = (result.records || []).map(msg => ({
+        id: msg.id,
+        conversationId: msg.conversationId,
+        content: msg.content,
+        type: 'text',
+        sender: msg.senderType === 'user' ? 'self' : 'other',
+        timestamp: msg.createdAt,
+        status: msg.senderType === 'user' ? 'sent' : 'received'
+      }))
+      
+      messages.value[conversationId] = formattedMessages
+      return formattedMessages
+    } catch (error) {
+      console.error('加载消息列表失败:', error)
+      // 如果加载失败，初始化为空数组
+      if (!messages.value[conversationId]) {
+        messages.value[conversationId] = []
+      }
+      throw error
+    } finally {
+      loading.value = false
     }
   }
 
@@ -105,75 +133,110 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   // 发送消息
-  const sendMessage = (content, type = 'text') => {
+  const sendMessage = async (content, type = 'text', extraData = {}) => {
     if (!currentConversation.value || !content.trim()) return
 
-    const newMessage = {
-      id: Date.now().toString(),
+    // 创建临时消息（立即显示在界面上）
+    const tempMessage = {
+      id: 'temp_' + Date.now(),
       conversationId: currentConversation.value.id,
       content: content.trim(),
       type,
       sender: 'self',
       timestamp: new Date().toISOString(),
-      status: 'sent'
+      status: 'sending',
+      ...extraData
     }
 
     // 添加到消息列表
     if (!messages.value[currentConversation.value.id]) {
       messages.value[currentConversation.value.id] = []
     }
-    messages.value[currentConversation.value.id].push(newMessage)
+    messages.value[currentConversation.value.id].push(tempMessage)
 
     // 更新会话最后消息
     const conv = conversations.value.find(c => c.id === currentConversation.value.id)
     if (conv) {
       conv.lastMessage = content.trim()
-      conv.lastTime = newMessage.timestamp
+      conv.lastTime = tempMessage.timestamp
     }
 
-    // 模拟对方回复
-    setTimeout(() => {
-      simulateReply()
-    }, 1000 + Math.random() * 2000)
-
-    return newMessage
+    try {
+      // 调用后端API发送消息
+      const messageData = {
+        conversationId: currentConversation.value.id,
+        content: content.trim(),
+        messageType: type,
+        fileUrl: extraData.fileUrl,
+        fileSize: extraData.fileSize,
+        duration: extraData.duration
+      }
+      
+      const result = await sendMessageApi(messageData)
+      
+      // 更新临时消息为真实消息
+      const msgList = messages.value[currentConversation.value.id]
+      const index = msgList.findIndex(m => m.id === tempMessage.id)
+      if (index > -1) {
+        msgList[index] = {
+          id: result.id,
+          conversationId: result.conversationId,
+          content: result.content,
+          type: result.messageType || 'text',
+          sender: 'self',
+          timestamp: result.createdAt,
+          status: 'sent',
+          fileUrl: result.fileUrl,
+          fileSize: result.fileSize,
+          duration: result.duration
+        }
+      }
+      
+      return msgList[index]
+    } catch (error) {
+      console.error('发送消息失败:', error)
+      // 标记消息发送失败
+      const msgList = messages.value[currentConversation.value.id]
+      const index = msgList.findIndex(m => m.id === tempMessage.id)
+      if (index > -1) {
+        msgList[index].status = 'failed'
+      }
+      throw error
+    }
   }
 
-  // 模拟回复
-  const simulateReply = () => {
-    if (!currentConversation.value) return
-
-    const replies = [
-      '好的，收到！',
-      '明白了~',
-      '没问题！',
-      '我看看...',
-      '稍等一下哦',
-      '这个想法不错！',
-      '好的，我知道了',
-      '收到，我处理一下',
-      '嗯嗯，好的',
-      '了解了，谢谢！'
-    ]
-
-    const replyMessage = {
-      id: Date.now().toString(),
-      conversationId: currentConversation.value.id,
-      content: replies[Math.floor(Math.random() * replies.length)],
+  // 接收AI回复消息（用于WebSocket或轮询）
+  const receiveMessage = (message) => {
+    if (!message || !message.conversationId) return
+    
+    const formattedMessage = {
+      id: message.id,
+      conversationId: message.conversationId,
+      content: message.content,
       type: 'text',
-      sender: 'other',
-      timestamp: new Date().toISOString(),
+      sender: message.senderType === 'user' ? 'self' : 'other',
+      timestamp: message.createdAt,
       status: 'received'
     }
-
-    messages.value[currentConversation.value.id].push(replyMessage)
-
-    // 更新会话
-    const conv = conversations.value.find(c => c.id === currentConversation.value.id)
-    if (conv) {
-      conv.lastMessage = replyMessage.content
-      conv.lastTime = replyMessage.timestamp
+    
+    // 添加到对应会话的消息列表
+    if (!messages.value[message.conversationId]) {
+      messages.value[message.conversationId] = []
     }
+    messages.value[message.conversationId].push(formattedMessage)
+    
+    // 更新会话最后消息
+    const conv = conversations.value.find(c => c.id === message.conversationId)
+    if (conv) {
+      conv.lastMessage = message.content
+      conv.lastTime = message.createdAt
+      // 如果不是当前会话，增加未读数（前端本地计数）
+      if (currentConversation.value?.id !== message.conversationId) {
+        conv.unread = (conv.unread || 0) + 1
+      }
+    }
+    
+    return formattedMessage
   }
 
   // 搜索会话
@@ -255,6 +318,56 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  // 初始化WebSocket连接
+  const initWebSocket = (token) => {
+    if (!token) return
+    
+    // 移除旧的处理器
+    if (wsMessageHandler) {
+      websocket.offMessage(wsMessageHandler)
+    }
+    
+    // 注册新的消息处理器
+    wsMessageHandler = (data) => {
+      // 处理不同类型的WebSocket消息
+      if (data.type === 'TEXT' && data.content) {
+        // AI文本消息
+        const message = {
+          id: data.messageId,
+          conversationId: data.conversationId,
+          senderType: data.senderType,
+          content: data.content,
+          createdAt: data.createdAt
+        }
+        receiveMessage(message)
+      } else if (data.type === 'STATUS') {
+        // 状态消息（如"正在输入..."）
+        // 可以在这里处理输入状态提示
+        console.log('Status update:', data)
+      } else if (data.type === 'PONG') {
+        // 心跳响应
+        console.log('Received PONG')
+      }
+    }
+    
+    websocket.onMessage(wsMessageHandler)
+    websocket.connect(token)
+  }
+
+  // 断开WebSocket连接
+  const disconnectWebSocket = () => {
+    if (wsMessageHandler) {
+      websocket.offMessage(wsMessageHandler)
+      wsMessageHandler = null
+    }
+    websocket.close()
+  }
+
+  // 检查WebSocket是否已连接
+  const isWebSocketConnected = () => {
+    return websocket.isConnected()
+  }
+
   return {
     conversations,
     currentConversation,
@@ -269,10 +382,14 @@ export const useChatStore = defineStore('chat', () => {
     loadMessages,
     selectConversation,
     sendMessage,
+    receiveMessage,
     setSearchKeyword,
     createNewConversation,
     deleteConversation,
     togglePin,
-    markRead
+    markRead,
+    initWebSocket,
+    disconnectWebSocket,
+    isWebSocketConnected
   }
 })

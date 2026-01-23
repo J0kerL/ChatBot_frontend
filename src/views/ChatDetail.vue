@@ -45,7 +45,9 @@
             </div>
             <div class="info">
               <h3>{{ conversation.name }}</h3>
-              <span class="status">{{ conversation.relationship || '在线' }}</span>
+              <span class="status" :class="{ 'typing': isAiTyping }">
+                {{ isAiTyping ? '对方正在输入中' : (conversation.relationship || '在线') }}
+              </span>
             </div>
           </div>
           <div class="chat-actions">
@@ -66,13 +68,23 @@
             v-for="message in messages" 
             :key="message.id"
             class="message-item"
-            :class="{ 'message-self': message.sender === 'self' }"
+            :class="{ 
+              'message-self': message.sender === 'self',
+              'message-sending': message.status === 'sending',
+              'message-failed': message.status === 'failed'
+            }"
           >
             <div class="message-avatar">
               <img :src="message.sender === 'self' ? userStore.user.avatar : conversation.avatar" />
             </div>
             <div class="message-content">
-              <div class="message-bubble">{{ message.content }}</div>
+              <div class="message-bubble">
+                {{ message.content }}
+                <span v-if="message.status === 'sending'" class="sending-indicator">发送中...</span>
+                <span v-if="message.status === 'failed'" class="failed-indicator" @click="resendMessage(message)">
+                  发送失败，点击重试
+                </span>
+              </div>
               <div class="message-time">{{ formatTime(message.timestamp) }}</div>
             </div>
           </div>
@@ -80,13 +92,6 @@
 
         <!-- 输入区域 -->
         <div class="input-area">
-          <div class="input-toolbar">
-            <button class="toolbar-btn" title="表情">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M11.99 2C6.47 2 2 6.48 2 12C2 17.52 6.47 22 11.99 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 11.99 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20ZM15.5 11C16.33 11 17 10.33 17 9.5C17 8.67 16.33 8 15.5 8C14.67 8 14 8.67 14 9.5C14 10.33 14.67 11 15.5 11ZM8.5 11C9.33 11 10 10.33 10 9.5C10 8.67 9.33 8 8.5 8C7.67 8 7 8.67 7 9.5C7 10.33 7.67 11 8.5 11ZM12 17.5C14.33 17.5 16.31 16.04 17.11 14H6.89C7.69 16.04 9.67 17.5 12 17.5Z" fill="currentColor"/>
-              </svg>
-            </button>
-          </div>
           <div class="input-box">
             <textarea 
               v-model="inputMessage"
@@ -108,36 +113,15 @@
         <button class="btn-primary" @click="goBack">返回消息列表</button>
       </div>
     </main>
-
-    <!-- 移动端底部导航 -->
-    <nav class="mobile-nav show-mobile">
-      <router-link to="/messages" class="mobile-nav-item active">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
-        </svg>
-        <span>消息</span>
-      </router-link>
-      <router-link to="/contacts" class="mobile-nav-item">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M16 11C17.66 11 18.99 9.66 18.99 8C18.99 6.34 17.66 5 16 5C14.34 5 13 6.34 13 8C13 9.66 14.34 11 16 11ZM8 11C9.66 11 10.99 9.66 10.99 8C10.99 6.34 9.66 5 8 5C6.34 5 5 6.34 5 8C5 9.66 6.34 11 8 11ZM8 13C5.67 13 1 14.17 1 16.5V19H15V16.5C15 14.17 10.33 13 8 13ZM16 13C15.71 13 15.38 13.02 15.03 13.05C16.19 13.89 17 15.02 17 16.5V19H23V16.5C23 14.17 18.33 13 16 13Z" fill="currentColor"/>
-        </svg>
-        <span>联系人</span>
-      </router-link>
-      <router-link to="/profile" class="mobile-nav-item">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z" fill="currentColor"/>
-        </svg>
-        <span>我的</span>
-      </router-link>
-    </nav>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useChatStore } from '@/stores/chat'
+import toast from '@/utils/toast'
 
 const router = useRouter()
 const route = useRoute()
@@ -146,21 +130,49 @@ const chatStore = useChatStore()
 
 const loading = ref(false)
 const conversation = ref(null)
-const messages = ref([])
 const inputMessage = ref('')
 const messagesContainer = ref(null)
 const showMoreMenu = ref(false)
+const isAiTyping = ref(false)
+const typingTimeout = ref(null)
 const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+
+// 直接使用 store 的 computed 属性，保持响应式
+const messages = computed(() => chatStore.currentMessages)
 
 onMounted(() => {
   userStore.loadUser()
   loadConversation()
+  
+  // 初始化WebSocket连接（只在未连接时初始化）
+  const token = localStorage.getItem('token')
+  if (token && !chatStore.isWebSocketConnected()) {
+    chatStore.initWebSocket(token)
+  }
+})
+
+onUnmounted(() => {
+  // 组件卸载时不断开WebSocket，保持连接以接收其他会话的消息
+  // chatStore.disconnectWebSocket()
+  // 重置输入状态
+  isAiTyping.value = false
+  // 清除超时定时器
+  if (typingTimeout.value) {
+    clearTimeout(typingTimeout.value)
+  }
 })
 
 const loadConversation = async () => {
   const conversationId = parseInt(route.params.id)
   if (!conversationId) {
     return
+  }
+  
+  // 切换会话时重置输入状态
+  isAiTyping.value = false
+  if (typingTimeout.value) {
+    clearTimeout(typingTimeout.value)
+    typingTimeout.value = null
   }
   
   try {
@@ -173,25 +185,64 @@ const loadConversation = async () => {
       // 标记已读
       await chatStore.markRead(conversationId)
       // 加载消息
-      messages.value = chatStore.currentMessages
+      await chatStore.loadMessages(conversationId)
+      // 不需要赋值，直接使用 computed 的 chatStore.currentMessages
+      
+      // 滚动到底部
+      nextTick(() => {
+        scrollToBottom()
+      })
     }
   } catch (error) {
     console.error('加载会话失败:', error)
+    toast.error('加载会话失败')
   } finally {
     loading.value = false
   }
 }
 
-const handleSend = () => {
+const handleSend = async () => {
   if (!inputMessage.value.trim()) return
   
-  const message = chatStore.sendMessage(inputMessage.value.trim())
-  messages.value = chatStore.currentMessages
+  const messageContent = inputMessage.value.trim()
   inputMessage.value = ''
   
-  nextTick(() => {
-    scrollToBottom()
-  })
+  try {
+    // 清除之前的超时定时器
+    if (typingTimeout.value) {
+      clearTimeout(typingTimeout.value)
+    }
+    
+    // 显示AI正在输入状态
+    isAiTyping.value = true
+    
+    // 设置超时保护：30秒后自动关闭"正在输入中"
+    typingTimeout.value = setTimeout(() => {
+      console.log('AI回复超时，自动关闭输入状态')
+      isAiTyping.value = false
+    }, 30000)
+    
+    await chatStore.sendMessage(messageContent)
+    // 不需要手动赋值，直接使用 chatStore.currentMessages
+    
+    nextTick(() => {
+      scrollToBottom()
+    })
+    
+    // 注意：不在这里关闭 isAiTyping，等待AI回复后再关闭
+  } catch (error) {
+    console.error('发送消息失败:', error)
+    // 发送失败时关闭输入状态
+    if (typingTimeout.value) {
+      clearTimeout(typingTimeout.value)
+    }
+    isAiTyping.value = false
+    // 显示错误提示
+    const errorMsg = error.message || '发送消息失败，请重试'
+    toast.error(errorMsg)
+    // 恢复输入内容
+    inputMessage.value = messageContent
+  }
 }
 
 const scrollToBottom = () => {
@@ -214,17 +265,60 @@ const goToProfile = () => {
   router.push('/profile')
 }
 
-// 监听消息变化，自动滚动到底部
-watch(() => messages.value.length, () => {
+// 重发消息
+const resendMessage = async (message) => {
+  if (message.status !== 'failed') return
+  
+  // 移除失败的消息
+  const msgList = messages.value
+  const index = msgList.findIndex(m => m.id === message.id)
+  if (index > -1) {
+    msgList.splice(index, 1)
+  }
+  
+  // 重新发送
+  inputMessage.value = message.content
+  await handleSend()
+}
+
+// 监听消息数量变化，自动滚动到底部
+watch(() => chatStore.currentMessages.length, () => {
   nextTick(() => {
     scrollToBottom()
   })
+  
+  // 检测AI回复并关闭输入状态
+  if (!isAiTyping.value) return
+  
+  const messages = chatStore.currentMessages
+  if (messages.length > 0) {
+    const lastMessage = messages[messages.length - 1]
+    // 如果最后一条消息是AI发送的，关闭输入状态
+    if (lastMessage && lastMessage.sender === 'other') {
+      console.log('检测到AI回复，关闭输入状态', lastMessage)
+      // 清除超时定时器
+      if (typingTimeout.value) {
+        clearTimeout(typingTimeout.value)
+        typingTimeout.value = null
+      }
+      isAiTyping.value = false
+    }
+  }
 })
 </script>
 
 <style lang="scss" scoped>
 @import '@/styles/variables.scss';
 @import '@/styles/mixins.scss';
+
+@keyframes typingPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
 
 .chat-detail-page {
   display: flex;
@@ -234,10 +328,7 @@ watch(() => messages.value.length, () => {
   
   @include mobile {
     flex-direction: column;
-    
-    .mobile-nav {
-      display: none !important;
-    }
+    background: $white;
   }
 }
 
@@ -338,6 +429,11 @@ watch(() => messages.value.length, () => {
   background: $white;
   min-width: 0;
   
+  @include mobile {
+    width: 100%;
+    height: 100vh;
+  }
+  
   .loading {
     flex: 1;
     @include flex-center;
@@ -353,6 +449,11 @@ watch(() => messages.value.length, () => {
     border-bottom: 1px solid $gray-100;
     flex-shrink: 0;
     
+    @include mobile {
+      padding: 12px 16px;
+      gap: 12px;
+    }
+    
     .back-btn {
       width: 36px;
       height: 36px;
@@ -365,6 +466,11 @@ watch(() => messages.value.length, () => {
       transition: all $transition-fast;
       flex-shrink: 0;
       
+      @include mobile {
+        width: 32px;
+        height: 32px;
+      }
+      
       &:hover {
         background: $gray-100;
         color: $gray-800;
@@ -376,15 +482,26 @@ watch(() => messages.value.length, () => {
       display: flex;
       align-items: center;
       gap: 12px;
+      min-width: 0;
+      
+      @include mobile {
+        gap: 8px;
+      }
       
       .avatar-wrapper {
         position: relative;
+        flex-shrink: 0;
         
         img {
           width: 44px;
           height: 44px;
           border-radius: $radius-full;
           object-fit: cover;
+          
+          @include mobile {
+            width: 40px;
+            height: 40px;
+          }
         }
         
         .online-dot {
@@ -396,20 +513,40 @@ watch(() => messages.value.length, () => {
           background: $success-color;
           border: 2px solid $white;
           border-radius: 50%;
+          
+          @include mobile {
+            width: 8px;
+            height: 8px;
+          }
         }
       }
       
       .info {
+        flex: 1;
+        min-width: 0;
+        
         h3 {
           font-size: $font-size-base;
           font-weight: 600;
           color: $gray-800;
           margin-bottom: 2px;
+          @include text-ellipsis;
+          
+          @include mobile {
+            font-size: $font-size-sm;
+          }
         }
         
         .status {
           font-size: $font-size-xs;
           color: $gray-500;
+          @include text-ellipsis;
+          
+          &.typing {
+            color: $primary-color;
+            font-weight: 500;
+            animation: typingPulse 1.5s ease-in-out infinite;
+          }
         }
       }
     }
@@ -443,6 +580,11 @@ watch(() => messages.value.length, () => {
     padding: 20px 24px;
     background: $bg-chat;
     
+    @include mobile {
+      padding: 16px;
+      padding-bottom: 20px;
+    }
+    
     .empty-messages {
       @include flex-center;
       height: 100%;
@@ -454,6 +596,21 @@ watch(() => messages.value.length, () => {
       display: flex;
       gap: 12px;
       margin-bottom: 20px;
+      
+      @include mobile {
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      
+      &.message-sending {
+        opacity: 0.6;
+      }
+      
+      &.message-failed {
+        .message-bubble {
+          border: 1px solid $error-color;
+        }
+      }
       
       &.message-self {
         flex-direction: row-reverse;
@@ -476,6 +633,11 @@ watch(() => messages.value.length, () => {
           height: 40px;
           border-radius: $radius-full;
           object-fit: cover;
+          
+          @include mobile {
+            width: 36px;
+            height: 36px;
+          }
         }
       }
       
@@ -485,6 +647,10 @@ watch(() => messages.value.length, () => {
         gap: 4px;
         max-width: 60%;
         
+        @include mobile {
+          max-width: 75%;
+        }
+        
         .message-bubble {
           padding: 12px 16px;
           background: $bubble-other;
@@ -493,6 +659,32 @@ watch(() => messages.value.length, () => {
           color: $gray-800;
           word-wrap: break-word;
           box-shadow: $shadow-sm;
+          position: relative;
+          
+          @include mobile {
+            padding: 10px 14px;
+            font-size: 14px;
+          }
+          
+          .sending-indicator {
+            display: block;
+            font-size: $font-size-xs;
+            color: $gray-400;
+            margin-top: 4px;
+          }
+          
+          .failed-indicator {
+            display: block;
+            font-size: $font-size-xs;
+            color: $error-color;
+            margin-top: 4px;
+            cursor: pointer;
+            text-decoration: underline;
+            
+            &:hover {
+              color: darken($error-color, 10%);
+            }
+          }
         }
         
         .message-time {
@@ -510,33 +702,18 @@ watch(() => messages.value.length, () => {
     padding: 16px 24px;
     flex-shrink: 0;
     
-    .input-toolbar {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-      
-      .toolbar-btn {
-        width: 32px;
-        height: 32px;
-        border: none;
-        background: transparent;
-        border-radius: $radius-md;
-        cursor: pointer;
-        color: $gray-500;
-        @include flex-center;
-        transition: all $transition-fast;
-        
-        &:hover {
-          background: $gray-100;
-          color: $primary-color;
-        }
-      }
+    @include mobile {
+      padding: 12px 16px;
     }
     
     .input-box {
       display: flex;
       gap: 12px;
       align-items: flex-end;
+      
+      @include mobile {
+        gap: 8px;
+      }
       
       textarea {
         flex: 1;
@@ -551,6 +728,13 @@ watch(() => messages.value.length, () => {
         outline: none;
         font-family: $font-family;
         overflow-y: hidden;
+        
+        @include mobile {
+          min-height: 60px;
+          max-height: 150px;
+          padding: 10px 12px;
+          font-size: 14px;
+        }
         
         &:focus {
           border-color: $primary-color;
@@ -572,6 +756,11 @@ watch(() => messages.value.length, () => {
         @include flex-center;
         transition: all $transition-fast;
         flex-shrink: 0;
+        
+        @include mobile {
+          width: 36px;
+          height: 36px;
+        }
         
         &:hover:not(:disabled) {
           transform: scale(1.05);
@@ -612,45 +801,6 @@ watch(() => messages.value.length, () => {
         transform: translateY(-2px);
         box-shadow: $shadow-float;
       }
-    }
-  }
-}
-
-// 移动端底部导航
-.mobile-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 60px;
-  background: $white;
-  border-top: 1px solid $gray-100;
-  display: none;
-  justify-content: space-around;
-  align-items: center;
-  padding-bottom: env(safe-area-inset-bottom, 0);
-  z-index: 100;
-  
-  @include mobile {
-    display: flex;
-  }
-  
-  .mobile-nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    color: $gray-500;
-    text-decoration: none;
-    padding: 8px 16px;
-    transition: all $transition-fast;
-    
-    &.active {
-      color: $primary-color;
-    }
-    
-    span {
-      font-size: 11px;
     }
   }
 }
