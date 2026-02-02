@@ -281,30 +281,30 @@ const resendMessage = async (message) => {
   await handleSend()
 }
 
-// 监听消息数量变化，自动滚动到底部
-watch(() => chatStore.currentMessages.length, () => {
-  nextTick(() => {
-    scrollToBottom()
-  })
-  
-  // 检测AI回复并关闭输入状态
-  if (!isAiTyping.value) return
-  
-  const messages = chatStore.currentMessages
-  if (messages.length > 0) {
-    const lastMessage = messages[messages.length - 1]
-    // 如果最后一条消息是AI发送的，关闭输入状态
-    if (lastMessage && lastMessage.sender === 'other') {
-      console.log('检测到AI回复，关闭输入状态', lastMessage)
-      // 清除超时定时器
-      if (typingTimeout.value) {
-        clearTimeout(typingTimeout.value)
-        typingTimeout.value = null
+// 监听消息数组变化，自动滚动到底部
+watch(() => chatStore.currentMessages, (newMessages, oldMessages) => {
+  // 只有当消息数量增加时才滚动
+  if (newMessages.length > (oldMessages?.length || 0)) {
+    nextTick(() => {
+      scrollToBottom()
+    })
+    
+    // 检测AI回复并关闭输入状态
+    if (isAiTyping.value && newMessages.length > 0) {
+      const lastMessage = newMessages[newMessages.length - 1]
+      // 如果最后一条消息是AI发送的，关闭输入状态
+      if (lastMessage && lastMessage.sender === 'other') {
+        console.log('检测到AI回复，关闭输入状态', lastMessage)
+        // 清除超时定时器
+        if (typingTimeout.value) {
+          clearTimeout(typingTimeout.value)
+          typingTimeout.value = null
+        }
+        isAiTyping.value = false
       }
-      isAiTyping.value = false
     }
   }
-})
+}, { deep: true }) // 深度监听确保能捕获数组内部变化
 </script>
 
 <style lang="scss" scoped>
@@ -329,6 +329,14 @@ watch(() => chatStore.currentMessages.length, () => {
   @include mobile {
     flex-direction: column;
     background: $white;
+    height: 100dvh; // 使用动态视口高度
+    max-height: -webkit-fill-available; // Safari兼容
+    position: fixed; // 固定定位防止整体滚动
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
   }
 }
 
@@ -431,7 +439,9 @@ watch(() => chatStore.currentMessages.length, () => {
   
   @include mobile {
     width: 100%;
-    height: 100vh;
+    height: 100dvh; // 使用动态视口高度，排除浏览器UI
+    max-height: -webkit-fill-available; // Safari兼容
+    position: relative;
   }
   
   .loading {
@@ -579,10 +589,12 @@ watch(() => chatStore.currentMessages.length, () => {
     overflow-y: auto;
     padding: 20px 24px;
     background: $bg-chat;
+    min-height: 0; // 确保flex子元素可以正确收缩
     
     @include mobile {
-      padding: 16px;
-      padding-bottom: 20px;
+      padding: 12px;
+      padding-bottom: 16px;
+      -webkit-overflow-scrolling: touch; // iOS平滑滚动
     }
     
     .empty-messages {
@@ -703,7 +715,10 @@ watch(() => chatStore.currentMessages.length, () => {
     flex-shrink: 0;
     
     @include mobile {
-      padding: 12px 16px;
+      padding: 10px 12px;
+      // 防止iOS键盘弹出时输入框被遮挡
+      position: relative;
+      z-index: 10;
     }
     
     .input-box {
@@ -727,13 +742,14 @@ watch(() => chatStore.currentMessages.length, () => {
         resize: vertical;
         outline: none;
         font-family: $font-family;
-        overflow-y: hidden;
+        overflow-y: auto;
         
         @include mobile {
-          min-height: 60px;
-          max-height: 150px;
+          min-height: 44px; // 减小最小高度，节省空间
+          max-height: 120px; // 减小最大高度
           padding: 10px 12px;
-          font-size: 14px;
+          font-size: 16px; // iOS上16px防止自动缩放
+          line-height: 1.4;
         }
         
         &:focus {

@@ -40,9 +40,21 @@ class WebSocketManager {
     // 构建WebSocket URL
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const host = window.location.hostname
-    const port = import.meta.env.DEV ? '8080' : window.location.port
+    
+    // 生产环境端口处理
+    let port = ''
+    if (import.meta.env.DEV) {
+      // 开发环境：使用后端端口 8080
+      port = ':8080'
+    } else {
+      // 生产环境：如果有端口号则使用，否则不添加端口（使用默认端口）
+      if (window.location.port) {
+        port = ':' + window.location.port
+      }
+    }
+    
     // 注意：后端配置了context-path为/api，所以WebSocket路径是/api/ws/chat
-    const wsUrl = `${protocol}//${host}:${port}/api/ws/chat?token=${token}`
+    const wsUrl = `${protocol}//${host}${port}/api/ws/chat?token=${token}`
 
     console.log('正在连接WebSocket:', wsUrl)
 
@@ -67,10 +79,17 @@ class WebSocketManager {
 
       this.ws.onerror = (error) => {
         console.error('WebSocket错误:', error)
+        console.error('WebSocket状态:', this.ws?.readyState)
+        console.error('WebSocket URL:', wsUrl)
       }
 
       this.ws.onclose = (event) => {
-        console.log('WebSocket连接关闭', event.code, event.reason)
+        console.log('WebSocket连接关闭', {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+          url: wsUrl
+        })
         this.ws = null
         this.stopHeartbeat()
         
@@ -90,18 +109,19 @@ class WebSocketManager {
    */
   reconnect(token) {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('WebSocket重连次数已达上限')
+      console.error(`WebSocket重连失败: 已达到最大重连次数 ${this.maxReconnectAttempts}`)
       return
     }
 
     this.clearReconnectTimer()
     
     this.reconnectAttempts++
-    console.log(`WebSocket将在${this.reconnectDelay}ms后进行第${this.reconnectAttempts}次重连`)
+    const delay = this.reconnectDelay * this.reconnectAttempts // 递增延迟
+    console.log(`WebSocket将在${delay}ms后进行第${this.reconnectAttempts}次重连`)
     
     this.reconnectTimer = setTimeout(() => {
       this.connect(token)
-    }, this.reconnectDelay)
+    }, delay)
   }
 
   /**

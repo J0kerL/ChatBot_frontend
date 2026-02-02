@@ -148,11 +148,14 @@ export const useChatStore = defineStore('chat', () => {
       ...extraData
     }
 
-    // 添加到消息列表
+    // 添加到消息列表（使用扩展运算符确保响应式更新）
     if (!messages.value[currentConversation.value.id]) {
       messages.value[currentConversation.value.id] = []
     }
-    messages.value[currentConversation.value.id].push(tempMessage)
+    messages.value[currentConversation.value.id] = [
+      ...messages.value[currentConversation.value.id],
+      tempMessage
+    ]
 
     // 更新会话最后消息
     const conv = conversations.value.find(c => c.id === currentConversation.value.id)
@@ -174,11 +177,11 @@ export const useChatStore = defineStore('chat', () => {
       
       const result = await sendMessageApi(messageData)
       
-      // 更新临时消息为真实消息
+      // 更新临时消息为真实消息（创建新数组确保响应式更新）
       const msgList = messages.value[currentConversation.value.id]
       const index = msgList.findIndex(m => m.id === tempMessage.id)
       if (index > -1) {
-        msgList[index] = {
+        const updatedMessage = {
           id: result.id,
           conversationId: result.conversationId,
           content: result.content,
@@ -190,16 +193,30 @@ export const useChatStore = defineStore('chat', () => {
           fileSize: result.fileSize,
           duration: result.duration
         }
+        
+        // 创建新数组触发响应式更新
+        messages.value[currentConversation.value.id] = [
+          ...msgList.slice(0, index),
+          updatedMessage,
+          ...msgList.slice(index + 1)
+        ]
+        
+        return updatedMessage
       }
       
-      return msgList[index]
+      return null
     } catch (error) {
       console.error('发送消息失败:', error)
-      // 标记消息发送失败
+      // 标记消息发送失败（创建新数组确保响应式更新）
       const msgList = messages.value[currentConversation.value.id]
       const index = msgList.findIndex(m => m.id === tempMessage.id)
       if (index > -1) {
-        msgList[index].status = 'failed'
+        const failedMessage = { ...msgList[index], status: 'failed' }
+        messages.value[currentConversation.value.id] = [
+          ...msgList.slice(0, index),
+          failedMessage,
+          ...msgList.slice(index + 1)
+        ]
       }
       throw error
     }
@@ -223,7 +240,12 @@ export const useChatStore = defineStore('chat', () => {
     if (!messages.value[message.conversationId]) {
       messages.value[message.conversationId] = []
     }
-    messages.value[message.conversationId].push(formattedMessage)
+    
+    // 使用扩展运算符创建新数组，确保触发响应式更新
+    messages.value[message.conversationId] = [
+      ...messages.value[message.conversationId],
+      formattedMessage
+    ]
     
     // 更新会话最后消息
     const conv = conversations.value.find(c => c.id === message.conversationId)
@@ -235,6 +257,8 @@ export const useChatStore = defineStore('chat', () => {
         conv.unread = (conv.unread || 0) + 1
       }
     }
+    
+    console.log('接收到新消息:', formattedMessage)
     
     return formattedMessage
   }

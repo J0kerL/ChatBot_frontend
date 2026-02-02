@@ -24,6 +24,12 @@ body {
   line-height: 1.5;
   min-height: 100vh;
   overflow-x: hidden;
+  
+  @include mobile {
+    // 移动端使用动态视口高度
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
 }
 
 a {

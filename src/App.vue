@@ -26,8 +26,15 @@ onMounted(() => {
 </template>
 
 <style lang="scss">
+@import '@/styles/mixins.scss';
+
 #app {
   width: 100%;
   min-height: 100vh;
+  
+  @include mobile {
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
 }
 </style>
