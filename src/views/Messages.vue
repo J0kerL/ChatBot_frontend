@@ -194,6 +194,13 @@
         <span>我的</span>
       </router-link>
     </nav>
+
+    <!-- 备案信息 -->
+    <footer class="beian-footer">
+      <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener noreferrer">
+        京ICP备2026007336号
+      </a>
+    </footer>
   </div>
 </template>
 
@@ -584,7 +591,7 @@ watch(showCreateDialog, watchDialog)
   .conversation-list-content {
     flex: 1;
     overflow-y: auto;
-    padding: 8px 30px 24px;
+    padding: 8px 30px 60px;
   }
   
   .loading {
@@ -1075,6 +1082,35 @@ watch(showCreateDialog, watchDialog)
     
     span {
       font-size: 11px;
+    }
+  }
+}
+
+// 备案信息
+.beian-footer {
+  position: fixed;
+  bottom: 0;
+  left: 72px;
+  right: 0;
+  padding: 12px 0;
+  background: $white;
+  border-top: 1px solid $gray-100;
+  text-align: center;
+  z-index: 50;
+  
+  @include mobile {
+    left: 0;
+    bottom: 60px;
+  }
+  
+  a {
+    font-size: 12px;
+    color: $gray-500;
+    text-decoration: none;
+    transition: color $transition-fast;
+    
+    &:hover {
+      color: $primary-color;
     }
   }
 }
